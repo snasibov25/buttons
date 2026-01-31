@@ -1,0 +1,281 @@
+<!-- templates/index.html -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Continue or Reset</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+
+  <body class="min-h-screen bg-gradient-to-br from-sky-50 via-violet-50 to-rose-50">
+    <div class="max-w-5xl mx-auto p-6">
+      <div class="rounded-3xl bg-white/70 backdrop-blur border border-white/60 shadow-xl shadow-violet-100 p-6">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h1 class="text-2xl font-semibold text-slate-800">Continue or Reset</h1>
+            <p class="mt-1 text-slate-600 text-sm">
+              Each round spawns 2 identical buttons. One continues, one resets.
+            </p>
+          </div>
+
+          <div class="flex items-center gap-4">
+            <div class="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <span>Highscore:</span>
+              <span class="inline-flex items-center gap-1 tabular-nums">
+                <!-- Crown icon (SVG, not emoji) -->
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M4 8l4.2 4.2L12 6l3.8 6.2L20 8v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8z"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M6 20h12"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                <span id="highscore">0</span>
+              </span>
+            </div>
+
+            <div class="text-sm font-semibold text-slate-700">
+              Score: <span id="score" class="tabular-nums">0</span>
+            </div>
+
+            <button id="resetBtn"
+              class="shrink-0 rounded-2xl px-4 py-2 bg-rose-100 text-rose-900 font-semibold border border-rose-200
+                     shadow-sm hover:bg-rose-200 active:scale-[0.99] focus:outline-none focus:ring-4 focus:ring-rose-200/70 transition">
+              Reset
+            </button>
+          </div>
+        </div>
+
+        <!-- Arena / constricting box -->
+        <div id="arena"
+          class="mt-6 relative w-full h-[70vh] min-h-[420px] rounded-3xl
+                 bg-white/60 border border-slate-200 shadow-inner overflow-hidden
+                 transition-shadow transition-colors">
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const arena = document.getElementById("arena");
+      const resetBtn = document.getElementById("resetBtn");
+      const scoreEl = document.getElementById("score");
+      const highscoreEl = document.getElementById("highscore");
+
+      // --- Pastel solid (identical for both choices) ---
+      const activeBtnClass =
+        "absolute inline-flex items-center justify-center select-none " +
+        "rounded-2xl px-4 py-2 font-semibold " +
+        "bg-violet-200 text-slate-900 border border-violet-300 " +
+        "shadow-sm shadow-violet-200/60 " +
+        "hover:bg-violet-300 active:scale-[0.99] " +
+        "focus:outline-none focus:ring-4 focus:ring-violet-200/70 transition";
+
+      // Greyed-out old buttons (stay on page, not clickable)
+      const usedBtnClass =
+        "absolute inline-flex items-center justify-center select-none " +
+        "rounded-2xl px-4 py-2 font-semibold " +
+        "bg-slate-200 text-slate-600 border border-slate-300 " +
+        "shadow-sm opacity-80 cursor-default";
+
+      // --- Game state ---
+      let nextId = 1;
+      let score = 0;
+
+      // --- Highscore (persisted) ---
+      const HS_KEY = "button_game_highscore_v1";
+      let highscore = Number(localStorage.getItem(HS_KEY) || "0");
+      highscoreEl.textContent = String(highscore);
+
+      function updateHighscoreIfNeeded() {
+        if (score > highscore) {
+          highscore = score;
+          localStorage.setItem(HS_KEY, String(highscore));
+          highscoreEl.textContent = String(highscore);
+        }
+      }
+
+      // --- Flash feedback on arena ---
+      // We add a temporary ring/shadow color and remove it shortly after.
+      let flashTimer = null;
+
+      function flashArena(ok) {
+        if (flashTimer) clearTimeout(flashTimer);
+
+        // Remove any previous flash classes
+        arena.classList.remove(
+          "ring-4", "ring-emerald-200", "ring-rose-200",
+          "shadow-emerald-200/60", "shadow-rose-200/60"
+        );
+
+        arena.classList.add("ring-4");
+        if (ok) {
+          arena.classList.add("ring-emerald-200", "shadow-emerald-200/60");
+        } else {
+          arena.classList.add("ring-rose-200", "shadow-rose-200/60");
+        }
+
+        // Brief flash then fade out
+        flashTimer = setTimeout(() => {
+          arena.classList.remove(
+            "ring-4", "ring-emerald-200", "ring-rose-200",
+            "shadow-emerald-200/60", "shadow-rose-200/60"
+          );
+          flashTimer = null;
+        }, 180);
+      }
+
+      // Store placed rectangles for overlap-avoidance
+      const rects = []; // {x,y,w,h}
+
+      function arenaSize() {
+        const r = arena.getBoundingClientRect();
+        return { w: r.width, h: r.height };
+      }
+
+      function randInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      function overlaps(a, b, pad = 10) {
+        return !(
+          a.x + a.w + pad < b.x ||
+          a.x > b.x + b.w + pad ||
+          a.y + a.h + pad < b.y ||
+          a.y > b.y + b.h + pad
+        );
+      }
+
+      function findPosition(btnW, btnH) {
+        const { w, h } = arenaSize();
+        const margin = 12;
+
+        const minX = margin;
+        const minY = margin;
+        const maxX = Math.max(margin, w - btnW - margin);
+        const maxY = Math.max(margin, h - btnH - margin);
+
+        if (maxX <= minX || maxY <= minY) return { x: margin, y: margin };
+
+        const tries = 60;
+        for (let i = 0; i < tries; i++) {
+          const x = randInt(minX, maxX);
+          const y = randInt(minY, maxY);
+          const candidate = { x, y, w: btnW, h: btnH };
+
+          let ok = true;
+          for (const r of rects) {
+            if (overlaps(candidate, r, 10)) { ok = false; break; }
+          }
+          if (ok) return { x, y };
+        }
+
+        return { x: randInt(minX, maxX), y: randInt(minY, maxY) };
+      }
+
+      function setScore(v) {
+        score = v;
+        scoreEl.textContent = String(score);
+        updateHighscoreIfNeeded();
+      }
+
+      function greyOut(btn) {
+        btn.className = usedBtnClass;
+        btn.disabled = true;
+      }
+
+      function createButton(label, onClick) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = label;
+        btn.className = activeBtnClass;
+
+        arena.appendChild(btn);
+
+        const b = btn.getBoundingClientRect();
+        const btnW = b.width;
+        const btnH = b.height;
+
+        const { x, y } = findPosition(btnW, btnH);
+        btn.style.left = `${x}px`;
+        btn.style.top = `${y}px`;
+
+        rects.push({ x, y, w: btnW, h: btnH });
+
+        btn.addEventListener("click", () => onClick(btn));
+        return btn;
+      }
+
+      function resetGame() {
+        arena.innerHTML = "";
+        rects.length = 0;
+        nextId = 1;
+        setScore(0);
+
+        createButton("Start", (btn) => {
+          greyOut(btn);
+          spawnRound();
+        });
+      }
+
+      function spawnRound() {
+        const continueIndex = Math.random() < 0.5 ? 0 : 1;
+
+        const a = createButton(`Button ${nextId++}`, (btn) => handlePick(btn, continueIndex === 0));
+        const b = createButton(`Button ${nextId++}`, (btn) => handlePick(btn, continueIndex === 1));
+
+        function handlePick(clickedBtn, isContinue) {
+          // Grey out BOTH from this round and keep them on page.
+          greyOut(a);
+          greyOut(b);
+
+          if (isContinue) {
+            flashArena(true);     // ✅ green flash
+            setScore(score + 1);
+            spawnRound();
+          } else {
+            flashArena(false);    // ❌ red flash
+            updateHighscoreIfNeeded();
+            // slight delay so the red flash is visible before clearing
+            setTimeout(resetGame, 220);
+          }
+        }
+      }
+
+      function repackAll() {
+        const buttons = Array.from(arena.querySelectorAll("button"));
+        rects.length = 0;
+
+        for (const btn of buttons) {
+          btn.style.left = "0px";
+          btn.style.top = "0px";
+
+          const b = btn.getBoundingClientRect();
+          const btnW = b.width;
+          const btnH = b.height;
+
+          const { x, y } = findPosition(btnW, btnH);
+          btn.style.left = `${x}px`;
+          btn.style.top = `${y}px`;
+
+          rects.push({ x, y, w: btnW, h: btnH });
+        }
+      }
+
+      resetBtn.addEventListener("click", resetGame);
+      window.addEventListener("resize", () => {
+        clearTimeout(window.__repackTimer);
+        window.__repackTimer = setTimeout(repackAll, 120);
+      });
+
+      resetGame();
+    </script>
+  </body>
+</html>
