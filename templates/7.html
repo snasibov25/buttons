@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+    /* BACKGROUND: WARP SPEED */
+    .void-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #000;
+        z-index: -1;
+        overflow: hidden;
+    }
+
+    /* Stars / Dust particles */
+    .star {
+        position: absolute;
+        background: white;
+        border-radius: 50%;
+        opacity: 0.8;
+        animation: fly 2s linear infinite;
+    }
+
+    @keyframes fly {
+        from { transform: translateZ(0) scale(0.1); opacity: 0; }
+        50% { opacity: 1; }
+        to { transform: translateZ(200px) scale(2); opacity: 0; }
+    }
+
+    /* CONTAINER UI */
+    .containment-ui {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;
+        max-width: 600px;
+        text-align: center;
+        font-family: 'Share Tech Mono', monospace;
+        color: #ff3333;
+        z-index: 10;
+        pointer-events: none; /* Let clicks pass through */
+    }
+
+    h2 {
+        font-size: 2rem;
+        text-transform: uppercase;
+        letter-spacing: 5px;
+        margin: 0;
+        text-shadow: 0 0 10px #ff3333;
+    }
+
+    .status-line {
+        font-size: 1.2rem;
+        margin-top: 10px;
+        color: #fff;
+        opacity: 0.8;
+    }
+
+    /* ENERGY BAR */
+    .energy-bar-frame {
+        width: 100%;
+        height: 10px;
+        border: 2px solid #555;
+        margin-top: 20px;
+        border-radius: 5px;
+        background: rgba(0,0,0,0.5);
+        overflow: hidden;
+    }
+
+    .energy-fill {
+        height: 100%;
+        width: 100%;
+        background: #ff3333;
+        box-shadow: 0 0 15px #ff3333;
+        transition: width 0.1s linear, background 0.3s;
+    }
+
+    /* THE CORE (BUTTON) */
+    #core-btn {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 30% 30%, #ffaaaa, #ff3333, #550000);
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 0 30px #ff3333, inset 0 0 20px #fff;
+        z-index: 5;
+        font-family: 'Share Tech Mono', monospace;
+        font-weight: bold;
+        color: white;
+        font-size: 1.2rem;
+        /* Start in middle */
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        will-change: transform, top, left;
+    }
+
+    #core-btn:active { transform: translate(-50%, -50%) scale(0.95); }
+    
+    /* Winning State styles */
+    .stabilized {
+        background: radial-gradient(circle at 30% 30%, #aaffff, #00ffff, #005555) !important;
+        box-shadow: 0 0 30px #00ffff, inset 0 0 20px #fff !important;
+        color: #003333 !important;
+    }
+
+    .win-text { color: #00ffff !important; text-shadow: 0 0 10px #00ffff !important; }
+    .win-bar { background: #00ffff !important; box-shadow: 0 0 15px #00ffff !important; }
+
+</style>
+
+<div class="void-bg" id="star-container"></div>
+
+<div class="containment-ui">
+    <h2 id="header-text">Anomaly Detected</h2>
+    <div class="status-line" id="sub-text">Containment Breach Imminent. Catch the Core.</div>
+    
+    <div class="energy-bar-frame">
+        <div class="energy-fill" id="nrg-bar"></div>
+    </div>
+</div>
+
+<button id="core-btn" onclick="capture()">CATCH</button>
+
+<script>
+    // --- STARFIELD BACKGROUND ---
+    const starContainer = document.getElementById('star-container');
+    for(let i=0; i<50; i++){
+        const s = document.createElement('div');
+        s.className = 'star';
+        s.style.left = Math.random() * 100 + '%';
+        s.style.top = Math.random() * 100 + '%';
+        s.style.animationDuration = (Math.random() * 2 + 1) + 's';
+        s.style.width = Math.random() * 3 + 'px';
+        s.style.height = s.style.width;
+        starContainer.appendChild(s);
+    }
+
+    // --- PHYSICS ENGINE ---
+    const btn = document.getElementById('core-btn');
+    const bar = document.getElementById('nrg-bar');
+    const header = document.getElementById('header-text');
+    const sub = document.getElementById('sub-text');
+
+    // State
+    let energy = 100;
+    let isCaptured = false;
+    
+    // Position & Velocity
+    let pos = { x: window.innerWidth/2, y: window.innerHeight/2 };
+    let vel = { x: 0, y: 0 };
+    
+    // Mouse Tracker
+    let mouse = { x: -1000, y: -1000 };
+    window.addEventListener('mousemove', e => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+    });
+
+    // Game Loop
+    function update() {
+        if(isCaptured) return;
+
+        // 1. Calculate Distance to Mouse
+        const dx = pos.x - mouse.x;
+        const dy = pos.y - mouse.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        // 2. Repulsion Force (Magnetism)
+        // If mouse is within 300px, push away
+        if(dist < 300) {
+            const force = (300 - dist) / 10; // Stronger as you get closer
+            const angle = Math.atan2(dy, dx);
+            
+            vel.x += Math.cos(angle) * force;
+            vel.y += Math.sin(angle) * force;
+            
+            // Drain energy based on how fast it's fleeing
+            if (energy > 0) {
+                energy -= 0.5;
+                bar.style.width = energy + "%";
+            }
+        }
+
+        // 3. Friction (Slow down naturally)
+        vel.x *= 0.92;
+        vel.y *= 0.92;
+
+        // 4. Update Position
+        pos.x += vel.x;
+        pos.y += vel.y;
+
+        // 5. Wall Bouncing
+        const pad = 50; // Button radius
+        if(pos.x < pad) { pos.x = pad; vel.x *= -1; }
+        if(pos.x > window.innerWidth - pad) { pos.x = window.innerWidth - pad; vel.x *= -1; }
+        if(pos.y < pad) { pos.y = pad; vel.y *= -1; }
+        if(pos.y > window.innerHeight - pad) { pos.y = window.innerHeight - pad; vel.y *= -1; }
+
+        // 6. Apply to DOM
+        btn.style.left = pos.x + 'px';
+        btn.style.top = pos.y + 'px';
+
+        // 7. Check Exhaustion
+        if (energy <= 0 && !btn.disabled) {
+            btn.innerText = "STABLE";
+            btn.classList.add('stabilized');
+            bar.classList.add('win-bar');
+            header.innerText = "Target Tired";
+            header.classList.add('win-text');
+            sub.innerText = "Core energy depleted. Click to Secure.";
+            // We stop repulsion logic by checking class or flag, 
+            // but let's just make vel friction higher so it stops dead
+            vel.x *= 0.5;
+            vel.y *= 0.5;
+        }
+
+        requestAnimationFrame(update);
+    }
+
+    // Start the physics loop
+    update();
+
+    function capture() {
+        if (energy > 0) {
+            // If they somehow click it while moving (lucky shot)
+            alert("SECURITY BREACH: YOU CAUGHT IT EARLY!");
+        }
+        
+        isCaptured = true;
+        btn.innerText = "SECURED";
+        header.innerText = "CONTAINMENT RESTORED";
+        sub.innerText = "System stable. Good job.";
+        
+        // Center it for victory
+        btn.style.transition = "all 1s";
+        btn.style.left = "50%";
+        btn.style.top = "50%";
+        btn.style.transform = "translate(-50%, -50%) scale(1.5)";
+        
+        // Flash effect
+        document.body.style.backgroundColor = "white";
+        setTimeout(() => { document.body.style.backgroundColor = "black"; }, 100);
+    }
+</script>
+{% endblock %}

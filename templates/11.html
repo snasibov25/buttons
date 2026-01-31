@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* THE VIBE: Dark, creepy, textured */
+    .cushion-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        /* Red Velvet Texture Pattern */
+        background-color: #4a0404;
+        background-image: 
+            radial-gradient(#6e0b0b 15%, transparent 16%),
+            radial-gradient(#6e0b0b 15%, transparent 16%);
+        background-size: 60px 60px;
+        background-position: 0 0, 30px 30px;
+        box-shadow: inset 0 0 150px #000;
+    }
+
+    .game-container {
+        position: relative;
+        max-width: 600px;
+        margin: 20px auto;
+        text-align: center;
+        padding: 20px;
+        background: rgba(0,0,0,0.3);
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.1);
+        backdrop-filter: blur(2px);
+    }
+
+    h2 {
+        font-family: 'Courier New', monospace;
+        color: #ddd;
+        font-size: 2.5rem;
+        text-shadow: 2px 2px 0 #000;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+    }
+
+    #status-msg {
+        color: #ff9999;
+        font-family: monospace;
+        font-size: 1.2rem;
+        min-height: 30px;
+        margin-bottom: 20px;
+        text-shadow: 1px 1px 2px black;
+    }
+
+    /* THE PINS */
+    .pin-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+        gap: 15px;
+        perspective: 1000px;
+    }
+
+    .pin-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        position: relative;
+        background: transparent;
+        transition: transform 0.1s;
+    }
+
+    /* Realistic Metallic Pinhead using Gradients */
+    .pin-head {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: radial-gradient(circle at 30% 30%, #ffffff, #d7d7d7, #8c8c8c, #4a4a4a);
+        box-shadow: 
+            2px 5px 5px rgba(0,0,0,0.5), /* Drop shadow */
+            inset -2px -2px 5px rgba(0,0,0,0.5); /* Inner depth */
+        position: relative;
+        z-index: 2;
+    }
+
+    /* The "Needle" shaft sticking into the cushion */
+    .pin-btn::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 4px;
+        height: 4px;
+        background: #000;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: 1px 1px 2px rgba(255,255,255,0.5);
+    }
+
+    .pin-btn:active {
+        transform: scale(0.9) translateY(2px);
+    }
+
+    /* ANIMATIONS */
+    @keyframes shake {
+        0% { transform: translate(1px, 1px) rotate(0deg); }
+        10% { transform: translate(-1px, -2px) rotate(-1deg); }
+        20% { transform: translate(-3px, 0px) rotate(1deg); }
+        30% { transform: translate(3px, 2px) rotate(0deg); }
+        40% { transform: translate(1px, -1px) rotate(1deg); }
+        50% { transform: translate(-1px, 2px) rotate(-1deg); }
+        60% { transform: translate(-3px, 1px) rotate(0deg); }
+        70% { transform: translate(3px, 1px) rotate(-1deg); }
+        80% { transform: translate(-1px, -1px) rotate(1deg); }
+        90% { transform: translate(1px, 2px) rotate(0deg); }
+        100% { transform: translate(1px, -2px) rotate(-1deg); }
+    }
+
+    .shake-screen {
+        animation: shake 0.5s;
+    }
+
+    /* BLOOD SPLATTER CSS */
+    .splatter {
+        position: absolute;
+        width: 60px;
+        height: 60px;
+        background: radial-gradient(circle, #8a0303 0%, transparent 80%);
+        border-radius: 50%;
+        pointer-events: none;
+        opacity: 0.8;
+        transform: scale(0);
+        animation: splat 0.3s forwards;
+        z-index: 10;
+    }
+    
+    @keyframes splat {
+        to { transform: scale(1.5); opacity: 0.6; }
+    }
+
+    /* WINNING STATE */
+    .golden-pin .pin-head {
+        background: radial-gradient(circle at 30% 30%, #fff7cc, #ffd700, #b8860b, #5e4302);
+        box-shadow: 0 0 20px #ffd700;
+    }
+</style>
+
+<div class="cushion-bg"></div>
+
+<div class="game-container" id="main-box">
+    <h2>The Pin Cushion</h2>
+    <div id="status-msg">99 Sharp. 1 Safe. Find the Gold.</div>
+    <div class="pin-grid" id="grid-box"></div>
+</div>
+
+<script>
+    const grid = document.getElementById('grid-box');
+    const status = document.getElementById('status-msg');
+    const mainBox = document.getElementById('main-box');
+    const totalButtons = 100;
+    
+    // Pick a random winner
+    const winnerIndex = Math.floor(Math.random() * totalButtons);
+
+    for (let i = 0; i < totalButtons; i++) {
+        const btn = document.createElement('div');
+        btn.className = 'pin-btn';
+        
+        // Inner HTML for the visual pinhead
+        btn.innerHTML = '<div class="pin-head"></div>';
+        
+        // Click Logic
+        btn.onclick = function(e) {
+            if (btn.classList.contains('clicked')) return; // Prevent double clicks
+            
+            if (i === winnerIndex) {
+                // WINNER
+                handleWin(btn);
+            } else {
+                // LOSER (OUCH)
+                handlePain(btn, e);
+            }
+        };
+        grid.appendChild(btn);
+    }
+
+    function handlePain(btn, e) {
+        btn.classList.add('clicked');
+        
+        // 1. Shake the screen
+        document.body.classList.remove('shake-screen');
+        void document.body.offsetWidth; // Trigger reflow to restart anim
+        document.body.classList.add('shake-screen');
+
+        // 2. Change Text
+        const ouchies = ["OUCH!", "STABBED!", "TOO SHARP!", "NOPE!", "MY FINGER!"];
+        status.innerText = ouchies[Math.floor(Math.random() * ouchies.length)];
+        status.style.color = "red";
+
+        // 3. Create Blood Splatter at click coordinates
+        createSplatter(e.clientX, e.clientY);
+        
+        // 4. Visual change on button (push it down permanently)
+        btn.style.opacity = "0.5";
+        btn.style.transform = "scale(0.8)";
+    }
+
+    function handleWin(btn) {
+        status.innerText = "YOU FOUND THE GOLDEN PIN! 🎉";
+        status.style.color = "#ffd700";
+        status.style.fontSize = "1.5rem";
+        
+        // Turn it gold
+        btn.classList.add('golden-pin');
+        btn.style.transform = "scale(1.5)";
+        btn.style.zIndex = "100";
+
+        // Disable everything else
+        Array.from(grid.children).forEach(b => {
+            if(b !== btn) b.style.opacity = "0.2";
+        });
+    }
+
+    function createSplatter(x, y) {
+        const div = document.createElement('div');
+        div.className = 'splatter';
+        // Randomize the blood shape slightly
+        div.style.left = (x - 30) + 'px';
+        div.style.top = (y - 30) + 'px';
+        
+        // Add to body so it overlays everything
+        document.body.appendChild(div);
+    }
+</script>
+{% endblock %}

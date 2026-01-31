@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+    /* COSMIC BACKGROUND */
+    .oracle-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at center, #1a0b2e 0%, #000000 100%);
+        z-index: -1;
+        overflow: hidden;
+    }
+
+    /* Grid overlay for depth */
+    .grid-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 200%;
+        height: 200%;
+        background-image: 
+            linear-gradient(rgba(100, 255, 218, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(100, 255, 218, 0.05) 1px, transparent 1px);
+        background-size: 50px 50px;
+        transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px);
+        animation: grid-move 20s linear infinite;
+    }
+
+    @keyframes grid-move {
+        from { transform: perspective(500px) rotateX(60deg) translateY(0) translateZ(-200px); }
+        to { transform: perspective(500px) rotateX(60deg) translateY(50px) translateZ(-200px); }
+    }
+
+    /* MAIN CONTAINER */
+    .interface-container {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 80vh;
+        font-family: 'Share Tech Mono', monospace;
+        color: #64ffda;
+        text-align: center;
+    }
+
+    /* THE 3D CORE */
+    .core-wrapper {
+        position: relative;
+        width: 200px;
+        height: 200px;
+        perspective: 1000px;
+        cursor: pointer;
+        transition: transform 0.1s; /* For mouse parallax */
+    }
+
+    .gyro {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        transform-style: preserve-3d;
+        animation: spin-main 10s linear infinite;
+    }
+
+    .ring {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border: 2px solid rgba(100, 255, 218, 0.5);
+        border-radius: 50%;
+        box-shadow: 0 0 15px rgba(100, 255, 218, 0.2);
+    }
+
+    .ring-1 { width: 100%; height: 100%; animation: rot-x 4s linear infinite; }
+    .ring-2 { width: 80%; height: 80%; animation: rot-y 5s linear infinite reverse; border-color: rgba(189, 147, 249, 0.6); }
+    .ring-3 { width: 60%; height: 60%; animation: rot-z 6s linear infinite; border-color: rgba(255, 121, 198, 0.6); }
+    
+    .core-sphere {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 40px;
+        height: 40px;
+        background: radial-gradient(circle, #fff, #64ffda);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: 0 0 50px #64ffda;
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* ANIMATIONS */
+    @keyframes spin-main { 100% { transform: rotateY(360deg); } }
+    @keyframes rot-x { 100% { transform: translate(-50%, -50%) rotateX(360deg); } }
+    @keyframes rot-y { 100% { transform: translate(-50%, -50%) rotateY(360deg); } }
+    @keyframes rot-z { 100% { transform: translate(-50%, -50%) rotateZ(360deg); } }
+    @keyframes pulse { 0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; } 50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; } }
+
+    /* TEXT OUTPUT */
+    .output-box {
+        margin-top: 50px;
+        min-height: 60px;
+        width: 80%;
+        max-width: 600px;
+        background: rgba(10, 25, 47, 0.8);
+        border: 1px solid #64ffda;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 0 20px rgba(100, 255, 218, 0.1);
+        position: relative;
+    }
+
+    /* Corner markers for tech look */
+    .output-box::before { content: ''; position: absolute; top: -2px; left: -2px; width: 10px; height: 10px; border-top: 2px solid #64ffda; border-left: 2px solid #64ffda; }
+    .output-box::after { content: ''; position: absolute; bottom: -2px; right: -2px; width: 10px; height: 10px; border-bottom: 2px solid #64ffda; border-right: 2px solid #64ffda; }
+
+    h2 { margin: 0 0 10px 0; font-size: 1rem; opacity: 0.7; letter-spacing: 2px; }
+    
+    #answer-text {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #fff;
+        text-shadow: 0 0 5px #64ffda;
+    }
+
+    .cursor {
+        display: inline-block;
+        width: 10px;
+        height: 1.5rem;
+        background: #64ffda;
+        animation: blink 1s step-end infinite;
+        vertical-align: text-bottom;
+        margin-left: 5px;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* Button */
+    .ask-btn {
+        margin-top: 30px;
+        background: transparent;
+        color: #64ffda;
+        border: 2px solid #64ffda;
+        padding: 15px 40px;
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+
+    .ask-btn:hover {
+        background: rgba(100, 255, 218, 0.1);
+        box-shadow: 0 0 20px rgba(100, 255, 218, 0.4);
+        transform: translateY(-2px);
+    }
+    
+    .ask-btn:active { transform: translateY(0); }
+
+</style>
+
+<div class="oracle-bg">
+    <div class="grid-overlay"></div>
+</div>
+
+<div class="interface-container">
+    
+    <div class="core-wrapper" id="core" onclick="askOracle()">
+        <div class="gyro">
+            <div class="ring ring-1"></div>
+            <div class="ring ring-2"></div>
+            <div class="ring ring-3"></div>
+            <div class="core-sphere"></div>
+        </div>
+    </div>
+
+    <div class="output-box">
+        <h2>QUANTUM ANALYSIS:</h2>
+        <div id="wrapper">
+            <span id="answer-text">SYSTEM READY. AWAITING QUERY.</span><span class="cursor"></span>
+        </div>
+    </div>
+
+    <button class="ask-btn" onclick="askOracle()">INITIATE SEQUENCE</button>
+
+</div>
+
+<script>
+    const answers = [
+        "IT IS CERTAIN.",
+        "TIMELINE UNCLEAR.",
+        "OUTCOME: HIGHLY PROBABLE.",
+        "ERROR 404: LUCK NOT FOUND.",
+        "DON'T BET ON IT.",
+        "SYSTEM OVERLOAD. TRY AGAIN.",
+        "THE DATA SAYS YES.",
+        "DEPLOYMENT FAILED.",
+        "LOOKS GOOD TO ME.",
+        "ASK STACKOVERFLOW.",
+        "FUTURE LOOKS BRIGHT.",
+        "ABSOLUTELY NOT."
+    ];
+
+    const textEl = document.getElementById('answer-text');
+    const core = document.getElementById('core');
+    let isProcessing = false;
+
+    // --- AUDIO SYSTEM ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playComputeSound() {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        // Sci-fi data noise
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+        osc.frequency.linearRampToValueAtTime(200, audioCtx.currentTime + 0.2);
+        osc.frequency.linearRampToValueAtTime(1200, audioCtx.currentTime + 0.3);
+        
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.5);
+    }
+
+    function playChime() {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 1);
+    }
+
+    // --- DECRYPTION EFFECT ---
+    function decryptText(targetText) {
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$#@%&*";
+        let iterations = 0;
+        
+        const interval = setInterval(() => {
+            textEl.innerText = targetText
+                .split("")
+                .map((letter, index) => {
+                    if(index < iterations) {
+                        return targetText[index];
+                    }
+                    return chars[Math.floor(Math.random() * chars.length)];
+                })
+                .join("");
+            
+            // Random beep during typing
+            if(Math.random() > 0.7) playComputeSound();
+
+            if(iterations >= targetText.length) { 
+                clearInterval(interval);
+                playChime();
+                isProcessing = false;
+            }
+            
+            iterations += 1 / 2; // Speed of decryption
+        }, 50);
+    }
+
+    function askOracle() {
+        if(isProcessing) return;
+        isProcessing = true;
+
+        // Visual feedback
+        core.style.transform = "scale(1.2)";
+        setTimeout(() => core.style.transform = "scale(1)", 200);
+
+        textEl.innerText = "CALCULATING...";
+        
+        // Artificial delay
+        setTimeout(() => {
+            const result = answers[Math.floor(Math.random() * answers.length)];
+            decryptText(result);
+        }, 800);
+    }
+
+    // --- MOUSE PARALLAX ---
+    document.addEventListener('mousemove', (e) => {
+        const x = (window.innerWidth / 2 - e.pageX) / 20;
+        const y = (window.innerHeight / 2 - e.pageY) / 20;
+        core.style.transform = `rotateY(${x}deg) rotateX(${-y}deg)`;
+    });
+</script>
+{% endblock %}

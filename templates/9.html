@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&display=swap');
+
+    /* Reset base styles to allow full screen split */
+    .card {
+        /* Override the default card style from base.html to go full width */
+        background: transparent !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+    }
+
+    /* THE SPLIT CONTAINER */
+    .split-container {
+        display: flex;
+        width: 100%;
+        height: 80vh; /* Takes up most of the screen */
+        overflow: hidden;
+        position: relative;
+        font-family: 'Montserrat', sans-serif;
+        border-radius: 20px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    }
+
+    /* THE SIDES */
+    .side {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: flex 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), filter 0.3s;
+        position: relative;
+        cursor: pointer;
+        padding: 20px;
+        text-align: center;
+        overflow: hidden;
+    }
+
+    /* Side A - Blue/Purple */
+    .side-a {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: #fff;
+    }
+    
+    /* Side B - Red/Orange */
+    .side-b {
+        background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);
+        color: #fff;
+    }
+
+    /* Hover Effects */
+    .split-container:hover .side { opacity: 0.5; }
+    .split-container .side:hover { 
+        flex: 2; /* Expands the hovered side */
+        opacity: 1; 
+    }
+
+    /* TEXT STYLES */
+    h2 {
+        font-size: 1.5rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 20px;
+        opacity: 0.8;
+    }
+
+    .option-text {
+        font-size: 2.5rem;
+        font-weight: 900;
+        text-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        line-height: 1.1;
+        max-width: 400px;
+        z-index: 2;
+    }
+
+    /* THE "OR" BADGE */
+    .or-badge {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #fff;
+        color: #333;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 1.5rem;
+        box-shadow: 0 0 20px rgba(0,0,0,0.3);
+        z-index: 10;
+        pointer-events: none; /* Let clicks pass through */
+        border: 5px solid #333;
+    }
+
+    /* STATS OVERLAY */
+    .stat-result {
+        font-size: 4rem;
+        font-weight: bold;
+        margin-top: 20px;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.5s;
+    }
+    
+    .show-stats .stat-result { opacity: 1; transform: translateY(0); }
+
+    /* NEXT BUTTON */
+    #next-btn {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%) scale(0);
+        background: #fff;
+        color: #333;
+        border: none;
+        padding: 15px 40px;
+        border-radius: 50px;
+        font-weight: bold;
+        font-size: 1.2rem;
+        cursor: pointer;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        z-index: 20;
+        transition: transform 0.3s;
+    }
+
+    #next-btn.visible { transform: translateX(-50%) scale(1); }
+    #next-btn:hover { transform: translateX(-50%) scale(1.1); }
+
+    /* CONFETTI CANVAS */
+    #confetti-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 15;
+    }
+</style>
+
+<div style="width: 90vw; max-width: 1000px; margin: 20px auto;">
+    
+    <div class="split-container" id="game-container">
+        
+        <div class="side side-a" onclick="choose('a')">
+            <h2>Would You Rather</h2>
+            <div id="text-a" class="option-text">...</div>
+            <div id="stat-a" class="stat-result">50%</div>
+        </div>
+
+        <div class="or-badge">OR</div>
+
+        <div class="side side-b" onclick="choose('b')">
+            <h2>Would You Rather</h2>
+            <div id="text-b" class="option-text">...</div>
+            <div id="stat-b" class="stat-result">50%</div>
+        </div>
+        
+        <canvas id="confetti-layer"></canvas>
+    </div>
+
+    <button id="next-btn" onclick="nextQuestion()">NEXT QUESTION ➔</button>
+
+</div>
+
+<script>
+    // --- THE QUESTION DATABASE ---
+    const questions = [
+        { a: "Be able to fly", b: "Be invisible" },
+        { a: "Fight 1 horse-sized duck", b: "Fight 100 duck-sized horses" },
+        { a: "Always have to shout", b: "Always have to whisper" },
+        { a: "Have fingers as long as legs", b: "Have legs as long as fingers" },
+        { a: "Live without music", b: "Live without TV/Movies" },
+        { a: "Know how you die", b: "Know when you die" },
+        { a: "Have a pause button for life", b: "Have a rewind button for life" },
+        { a: "Always have wet socks", b: "Always have a pebble in your shoe" },
+        { a: "Explore space", b: "Explore the deep ocean" },
+        { a: "Be the smartest person", b: "Be the funniest person" }
+    ];
+
+    let canClick = true;
+    
+    // --- GAME LOGIC ---
+    function nextQuestion() {
+        // Reset UI
+        canClick = true;
+        document.getElementById('game-container').classList.remove('show-stats');
+        document.getElementById('next-btn').classList.remove('visible');
+        
+        document.getElementById('stat-a').style.opacity = '0';
+        document.getElementById('stat-b').style.opacity = '0';
+
+        // Pick random question
+        const q = questions[Math.floor(Math.random() * questions.length)];
+        document.getElementById('text-a').innerText = q.a;
+        document.getElementById('text-b').innerText = q.b;
+    }
+
+    function choose(side) {
+        if (!canClick) return;
+        canClick = false;
+
+        // Generate Fake Stats (Must add up to 100)
+        // Ensure the side they picked usually wins or is close, to make them feel validated (or weird)
+        const variance = Math.floor(Math.random() * 20) + 40; // Random between 40 and 60
+        let percentA = variance;
+        let percentB = 100 - variance;
+
+        // Randomize which is higher
+        if (Math.random() > 0.5) {
+            const temp = percentA; percentA = percentB; percentB = temp;
+        }
+
+        // Update Text
+        animateValue("stat-a", 0, percentA, 1000);
+        animateValue("stat-b", 0, percentB, 1000);
+
+        // Show UI Elements
+        document.getElementById('stat-a').style.opacity = '1';
+        document.getElementById('stat-b').style.opacity = '1';
+        document.getElementById('next-btn').classList.add('visible');
+        
+        // Trigger visual effect
+        if(side === 'a') spawnConfetti(window.innerWidth * 0.25);
+        else spawnConfetti(window.innerWidth * 0.75);
+    }
+
+    // Number counter animation
+    function animateValue(id, start, end, duration) {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            document.getElementById(id).innerHTML = Math.floor(progress * (end - start) + start) + "%";
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    // Initialize first question
+    nextQuestion();
+
+    // --- SIMPLE CONFETTI BURST ---
+    const canvas = document.getElementById('confetti-layer');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    
+    function resizeCanvas() {
+        canvas.width = document.getElementById('game-container').offsetWidth;
+        canvas.height = document.getElementById('game-container').offsetHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function spawnConfetti(x) {
+        resizeCanvas();
+        for(let i=0; i<60; i++) {
+            particles.push({
+                x: x,
+                y: canvas.height / 2,
+                vx: (Math.random() - 0.5) * 20,
+                vy: (Math.random() - 0.5) * 20,
+                color: '#fff',
+                life: 1.0
+            });
+        }
+        animateConfetti();
+    }
+
+    function animateConfetti() {
+        if(particles.length === 0) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        for(let i=0; i<particles.length; i++) {
+            let p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= 0.02;
+            p.vy += 0.5; // Gravity
+
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 4, 0, Math.PI*2);
+            ctx.fill();
+            
+            if(p.life <= 0) {
+                particles.splice(i, 1);
+                i--;
+            }
+        }
+        requestAnimationFrame(animateConfetti);
+    }
+</script>
+{% endblock %}

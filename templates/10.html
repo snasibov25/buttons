@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* --- VEGAS BACKGROUND --- */
+    .vegas-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        background: radial-gradient(circle at bottom, #2d1b4e 0%, #1a0b2e 50%, #000000 100%);
+        overflow: hidden;
+    }
+
+    /* Moving Searchlights */
+    .light-beam {
+        position: absolute;
+        bottom: -20%;
+        left: 20%;
+        width: 60px;
+        height: 200%;
+        background: linear-gradient(to top, rgba(255, 215, 0, 0.2), transparent 80%);
+        transform-origin: bottom center;
+        filter: blur(15px);
+        animation: sweep 6s infinite alternate ease-in-out;
+    }
+
+    .light-beam:nth-child(2) {
+        left: 80%;
+        animation-delay: -3s;
+        animation-duration: 8s;
+        background: linear-gradient(to top, rgba(255, 0, 255, 0.2), transparent 80%);
+    }
+
+    @keyframes sweep {
+        0% { transform: rotate(-25deg); }
+        100% { transform: rotate(25deg); }
+    }
+
+    /* Ambient Bokeh Particles */
+    .bokeh {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        animation: float 10s infinite linear;
+    }
+
+    @keyframes float {
+        0% { transform: translateY(120vh) scale(0); opacity: 0; }
+        50% { opacity: 0.5; }
+        100% { transform: translateY(-20vh) scale(1); opacity: 0; }
+    }
+
+    /* --- SLOT MACHINE STYLES --- */
+    .slot-machine {
+        background: linear-gradient(135deg, #FFD700 0%, #FDB931 50%, #B8860B 100%);
+        padding: 40px;
+        border-radius: 30px;
+        border: 4px solid #fff;
+        /* Glowing Gold Aura */
+        box-shadow: 
+            0 0 50px rgba(255, 215, 0, 0.4),
+            inset 0 0 50px rgba(0,0,0,0.5);
+        max-width: 500px;
+        margin: 40px auto;
+        position: relative;
+        z-index: 10;
+        text-align: center;
+    }
+
+    .title-banner {
+        background: #8b0000;
+        color: #fff;
+        padding: 15px;
+        border-radius: 10px;
+        font-family: 'Arial Black', sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 25px;
+        border: 4px dotted #ffcc00;
+        box-shadow: 0 5px 10px rgba(0,0,0,0.5);
+        animation: marquee-flash 1s infinite alternate;
+        font-size: 24px;
+    }
+
+    .reels-container {
+        display: flex;
+        gap: 15px;
+        background: #222;
+        padding: 20px;
+        border-radius: 15px;
+        border: 4px solid #555;
+        margin-bottom: 30px;
+        box-shadow: inset 0 0 20px #000;
+    }
+
+    .reel {
+        background: white;
+        width: 100%; /* Flexible width */
+        aspect-ratio: 3/4;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 60px;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+        border: 2px solid #999;
+        overflow: hidden; /* Hide sliding text if we add that later */
+    }
+
+    .spin-btn {
+        background: linear-gradient(to bottom, #ff4d4d, #cc0000);
+        color: white;
+        font-size: 28px;
+        font-weight: bold;
+        border: 2px solid #ff9999;
+        padding: 20px 80px;
+        border-radius: 50px;
+        cursor: pointer;
+        box-shadow: 0 10px 0 #990000, 0 20px 20px rgba(0,0,0,0.4);
+        transition: transform 0.1s, box-shadow 0.1s;
+        text-shadow: 0 2px 2px rgba(0,0,0,0.3);
+        text-transform: uppercase;
+        font-family: sans-serif;
+    }
+
+    .spin-btn:active {
+        transform: translateY(8px);
+        box-shadow: 0 2px 0 #990000, inset 0 5px 10px rgba(0,0,0,0.4);
+    }
+
+    .spin-btn:disabled {
+        background: #777;
+        box-shadow: none;
+        cursor: not-allowed;
+        border-color: #555;
+    }
+
+    #status {
+        margin-top: 20px;
+        font-weight: bold;
+        font-size: 22px;
+        color: #333; 
+        text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+        min-height: 30px;
+        background: rgba(255,255,255,0.3);
+        padding: 5px;
+        border-radius: 5px;
+    }
+
+    #confetti-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 100;
+    }
+
+    @keyframes marquee-flash {
+        from { text-shadow: 0 0 5px #fff; box-shadow: 0 0 10px #ffcc00; }
+        to { text-shadow: 0 0 20px #ff00de; box-shadow: 0 0 20px #ff00de; border-color: #fff; }
+    }
+</style>
+
+<div class="vegas-bg">
+    <div class="light-beam"></div>
+    <div class="light-beam"></div>
+    <div class="bokeh" style="width: 50px; height: 50px; left: 10%; animation-duration: 8s;"></div>
+    <div class="bokeh" style="width: 20px; height: 20px; left: 30%; animation-duration: 12s;"></div>
+    <div class="bokeh" style="width: 80px; height: 80px; left: 70%; animation-duration: 15s;"></div>
+    <div class="bokeh" style="width: 40px; height: 40px; left: 90%; animation-duration: 9s;"></div>
+</div>
+
+<div class="slot-machine">
+    <div class="title-banner">Mega Jackpot</div>
+    
+    <div class="reels-container">
+        <div id="reel1" class="reel">🍒</div>
+        <div id="reel2" class="reel">🍒</div>
+        <div id="reel3" class="reel">🍒</div>
+    </div>
+
+    <div id="status">Press SPIN to win!</div>
+    <br>
+    <button id="spinBtn" class="spin-btn" onclick="spin()">SPIN</button>
+</div>
+
+<canvas id="confetti-canvas"></canvas>
+
+<script>
+    // --- SLOT MACHINE LOGIC ---
+    const symbols = ['🍒', '🍋', '🍉', '🍇', '💎', '7️⃣'];
+    const r1 = document.getElementById('reel1');
+    const r2 = document.getElementById('reel2');
+    const r3 = document.getElementById('reel3');
+    const status = document.getElementById('status');
+    const btn = document.getElementById('spinBtn');
+
+    let isSpinning = false;
+
+    function getRandomSymbol() {
+        return symbols[Math.floor(Math.random() * symbols.length)];
+    }
+
+    async function spin() {
+        if (isSpinning) return;
+        isSpinning = true;
+        btn.disabled = true;
+        status.innerText = "Spinning...";
+        status.style.color = "#333";
+
+        // Spin animation loop
+        let spins = 0;
+        const interval = setInterval(() => {
+            r1.innerText = getRandomSymbol();
+            r2.innerText = getRandomSymbol();
+            r3.innerText = getRandomSymbol();
+            spins++;
+        }, 80); // Slightly faster spin visual
+
+        // Stop reels one by one
+        await new Promise(r => setTimeout(r, 1000));
+        clearInterval(interval);
+        
+        const final1 = getRandomSymbol();
+        r1.innerText = final1;
+        
+        const i2 = setInterval(() => { r2.innerText = getRandomSymbol(); r3.innerText = getRandomSymbol(); }, 80);
+        await new Promise(r => setTimeout(r, 500));
+        clearInterval(i2);
+        
+        const final2 = getRandomSymbol();
+        r2.innerText = final2;
+
+        const i3 = setInterval(() => { r3.innerText = getRandomSymbol(); }, 80);
+        await new Promise(r => setTimeout(r, 500));
+        clearInterval(i3);
+
+        const final3 = getRandomSymbol();
+        r3.innerText = final3;
+
+        checkWin(final1, final2, final3);
+        isSpinning = false;
+        btn.disabled = false;
+    }
+
+    function checkWin(s1, s2, s3) {
+        if (s1 === s2 && s2 === s3) {
+            status.innerText = "JACKPOT!!! 🎉🎉🎉";
+            status.style.color = "#d32f2f"; // Dark red
+            status.style.background = "#fff";
+            startConfetti();
+        } else if (s1 === s2 || s2 === s3 || s1 === s3) {
+            status.innerText = "So close! Spin again.";
+        } else {
+            status.innerText = "No luck. Try again!";
+        }
+    }
+
+    // --- CONFETTI ENGINE (Same as before) ---
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let animationId;
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function startConfetti() {
+        for (let i = 0; i < 200; i++) {
+            particles.push({
+                x: canvas.width / 2, 
+                y: canvas.height / 2,
+                w: Math.random() * 10 + 5,
+                h: Math.random() * 10 + 5,
+                color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+                vx: (Math.random() - 0.5) * 25, 
+                vy: (Math.random() - 0.5) * 25,
+                gravity: 0.5,
+                rotation: Math.random() * 360,
+                rotationSpeed: (Math.random() - 0.5) * 10
+            });
+        }
+        if (!animationId) animateConfetti();
+        
+        setTimeout(() => { particles = []; }, 4500);
+    }
+
+    function animateConfetti() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach((p, index) => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += p.gravity;
+            p.rotation += p.rotationSpeed;
+            p.vx *= 0.95;
+            p.vy *= 0.95;
+
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate((p.rotation * Math.PI) / 180);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            ctx.restore();
+
+            if (p.y > canvas.height) particles.splice(index, 1);
+        });
+
+        if (particles.length > 0) {
+            animationId = requestAnimationFrame(animateConfetti);
+        } else {
+            animationId = null;
+        }
+    }
+</script>
+{% endblock %}

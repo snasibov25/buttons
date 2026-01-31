@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* RESET & LAYOUT */
+    body {
+        /* Override base margins so the gradient hits the edges */
+        margin: 0;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    /* THE FULL SCREEN VIBE LAYER */
+    #vibe-layer {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        /* Default starting vibe */
+        background-image: linear-gradient(45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+        background-size: 400% 400%;
+        animation: breath 15s ease infinite;
+        transition: background-image 1s ease; /* Smooth fade between clicks */
+    }
+
+    @keyframes breath {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    /* THE GLASS CARD UI */
+    .vibe-card {
+        position: relative;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(25px);
+        -webkit-backdrop-filter: blur(25px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 50px;
+        border-radius: 30px;
+        text-align: center;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        max-width: 600px;
+        width: 90%;
+        margin: 10vh auto; 
+        color: white;
+    }
+
+    h2 {
+        font-family: sans-serif;
+        font-weight: 900;
+        font-size: 3.5rem;
+        margin: 0;
+        text-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        line-height: 1.1;
+        text-transform: uppercase;
+        letter-spacing: -2px;
+    }
+
+    .subtitle {
+        font-size: 1rem;
+        opacity: 0.9;
+        margin-top: 10px;
+        margin-bottom: 30px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    }
+
+    /* CODE BOX */
+    .code-display {
+        background: rgba(0,0,0,0.4);
+        padding: 20px;
+        border-radius: 15px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        margin-bottom: 30px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 2px dashed rgba(255,255,255,0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .code-display:hover { 
+        background: rgba(0,0,0,0.6); 
+        border-color: #fff;
+        transform: scale(1.02);
+    }
+    .copy-icon { opacity: 0.5; font-size: 1.2rem; }
+
+    /* BUTTONS */
+    .controls {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+    }
+
+    .btn-vibe {
+        padding: 20px 40px;
+        border: none;
+        border-radius: 50px;
+        font-weight: 900;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: transform 0.1s, box-shadow 0.2s;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .btn-primary {
+        background: white;
+        color: #333;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+    .btn-primary:active { transform: translateY(0); }
+
+    /* TOAST NOTIFICATION */
+    #toast {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: #111;
+        color: white;
+        padding: 15px 30px;
+        border-radius: 50px;
+        font-weight: bold;
+        opacity: 0;
+        transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+
+<div id="vibe-layer"></div>
+
+<div class="vibe-card">
+    <div class="subtitle">Current Vibe</div>
+    <h2 id="vibe-name">LOADING...</h2>
+    <br>
+    
+    <div class="code-display" id="css-code" onclick="copyCode()" title="Click to Copy">
+        <span id="code-text">background: ...</span>
+        <span class="copy-icon">📋</span>
+    </div>
+
+    <div class="controls">
+        <button class="btn-vibe btn-primary" onclick="generateVibe()">✨ Remix Vibe</button>
+    </div>
+</div>
+
+<div id="toast"><span>✅</span> CSS Copied to Clipboard!</div>
+
+<script>
+    // --- VIBE NAME DATABASE ---
+    const adjs = [
+        "Electric", "Midnight", "Spicy", "Frozen", "Toxic", "Royal", 
+        "Cotton Candy", "Deep", "Radioactive", "Sunset", "Velvet", 
+        "Cyber", "Glitch", "Neon", "Pastel", "Dark", "Holy"
+    ];
+    const nouns = [
+        "Dream", "Mist", "Ocean", "Fire", "Void", "Haze", "Bliss", 
+        "Panic", "Wave", "Galaxy", "Sludge", "City", "Rage", 
+        "Summer", "Nightmare", "Sky", "Prism"
+    ];
+
+    function getRandomColor() {
+        return '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+    }
+
+    function generateVibe() {
+        // 1. Generate 3 Random Colors
+        const c1 = getRandomColor();
+        const c2 = getRandomColor();
+        const c3 = getRandomColor();
+        const angle = Math.floor(Math.random() * 360);
+
+        // 2. Build CSS String
+        const cssValue = `linear-gradient(${angle}deg, ${c1}, ${c2}, ${c3})`;
+        
+        // 3. Apply to Background Layer
+        const bg = document.getElementById('vibe-layer');
+        bg.style.backgroundImage = cssValue;
+
+        // 4. Generate Random Name
+        const name = adjs[Math.floor(Math.random() * adjs.length)] + " " + nouns[Math.floor(Math.random() * nouns.length)];
+        
+        // 5. Update UI
+        const nameEl = document.getElementById('vibe-name');
+        
+        // Simple fade effect for text
+        nameEl.style.opacity = 0;
+        setTimeout(() => {
+            nameEl.innerText = name;
+            nameEl.style.opacity = 1;
+        }, 200);
+
+        document.getElementById('code-text').innerText = `background: ${cssValue};`;
+    }
+
+    function copyCode() {
+        const text = document.getElementById('code-text').innerText;
+        navigator.clipboard.writeText(text);
+        
+        // Show Toast
+        const toast = document.getElementById('toast');
+        toast.classList.add('show');
+        
+        // Hide Toast after 2 seconds
+        setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    // Initialize with a fresh vibe immediately
+    generateVibe();
+</script>
+{% endblock %}

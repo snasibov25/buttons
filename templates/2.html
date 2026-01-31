@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;700;900&display=swap');
+
+    /* VC TERMINAL BACKGROUND */
+    .vc-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #0f172a;
+        z-index: -1;
+    }
+
+    /* Subtle Grid */
+    .vc-bg::before {
+        content: '';
+        position: absolute;
+        width: 200%;
+        height: 200%;
+        background-image: 
+            linear-gradient(rgba(56, 189, 248, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
+        background-size: 40px 40px;
+        transform: rotate(15deg);
+    }
+
+    /* DASHBOARD CARD */
+    .pitch-deck {
+        position: relative;
+        width: 90%;
+        max-width: 700px;
+        margin: 60px auto;
+        background: rgba(30, 41, 59, 0.9);
+        border: 1px solid #334155;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        text-align: left;
+        font-family: 'Inter', sans-serif;
+        color: white;
+        backdrop-filter: blur(10px);
+    }
+
+    .header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        border-bottom: 1px solid #334155;
+        padding-bottom: 20px;
+    }
+
+    .logo {
+        font-weight: 900;
+        font-size: 1.5rem;
+        background: linear-gradient(to right, #38bdf8, #818cf8);
+        -webkit-background-clip: text;
+        color: transparent;
+        letter-spacing: -1px;
+    }
+
+    .badge {
+        background: #0f172a;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        color: #94a3b8;
+        border: 1px solid #334155;
+    }
+
+    /* THE PITCH TEXT */
+    .pitch-container {
+        min-height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    #idea-text {
+        font-size: 2.5rem;
+        font-weight: 900;
+        line-height: 1.2;
+        background: linear-gradient(to right, #fff, #cbd5e1);
+        -webkit-background-clip: text;
+        color: transparent;
+    }
+
+    /* VALUATION SECTION */
+    .valuation-box {
+        margin-top: 30px;
+        background: #0f172a;
+        padding: 20px;
+        border-radius: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid #334155;
+    }
+
+    .val-label { font-size: 0.9rem; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+    #val-amount { font-size: 1.5rem; font-weight: bold; color: #4ade80; }
+
+    /* ACTION BUTTON */
+    .disrupt-btn {
+        width: 100%;
+        margin-top: 30px;
+        padding: 20px;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        border: none;
+        border-radius: 10px;
+        color: white;
+        font-weight: bold;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: transform 0.1s, box-shadow 0.2s;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .disrupt-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(37, 99, 235, 0.4);
+    }
+    
+    .disrupt-btn:active { transform: translateY(0); }
+
+    /* TICKER AT BOTTOM */
+    .ticker-wrap {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        background: #0f172a;
+        border-top: 1px solid #334155;
+        height: 40px;
+        overflow: hidden;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+    }
+
+    .ticker {
+        display: inline-block;
+        animation: marquee 20s linear infinite;
+        padding-left: 100%;
+        font-family: monospace;
+        color: #94a3b8;
+    }
+
+    .tick-item { margin-right: 40px; }
+    .up { color: #4ade80; }
+    .down { color: #f87171; }
+
+    @keyframes marquee {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(-100%, 0); }
+    }
+</style>
+
+<div class="vc-bg"></div>
+
+<div class="pitch-deck">
+    <div class="header-row">
+        <div class="logo">UNICORN FACTORY</div>
+        <div class="badge">SERIES A ROUND</div>
+    </div>
+
+    <div class="pitch-container">
+        <div id="idea-text">Click below to pivot.</div>
+    </div>
+
+    <div class="valuation-box">
+        <span class="val-label">Projected Valuation</span>
+        <span id="val-amount">$0</span>
+    </div>
+
+    <button class="disrupt-btn" onclick="generateIdea()">🚀 DISRUPT THE MARKET</button>
+</div>
+
+<div class="ticker-wrap">
+    <div class="ticker">
+        <span class="tick-item">AI <span class="up">▲ 4.2%</span></span>
+        <span class="tick-item">CRYPTO <span class="down">▼ 12.5%</span></span>
+        <span class="tick-item">TSLA <span class="up">▲ 0.5%</span></span>
+        <span class="tick-item">NFTs <span class="down">▼ 99.9%</span></span>
+        <span class="tick-item">METAVERSE <span class="down">▼ 8.0%</span></span>
+        <span class="tick-item">TACO <span class="up">▲ 200%</span></span>
+    </div>
+</div>
+
+<script>
+    // --- BUZZWORD DATABASE ---
+    const prefix = [
+        "AI-Powered", "Blockchain", "Quantum", "Sustainable", "VR", 
+        "Decentralized", "Generative", "Hyper-Local", "Subscription-Based",
+        "Autonomous", "Bio-Hacked", "Zero-Emission"
+    ];
+    
+    const model = [
+        "Uber", "Tinder", "Airbnb", "Spotify", "Netflix", "TikTok", 
+        "OnlyFans", "Robinhood", "Twitch", "DoorDash", "ChatGPT"
+    ];
+    
+    const audience = [
+        "for Dogs", "for Sad Clowns", "for Billionaires", "for Plants", 
+        "for Babies", "on Mars", "for Introverts", "for Gamers", 
+        "for Ghosts", "for Your Ex", "in the Metaverse", "for Cats"
+    ];
+
+    function formatMoney(amount) {
+        return "$" + amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    function generateIdea() {
+        const textEl = document.getElementById('idea-text');
+        const valEl = document.getElementById('val-amount');
+        
+        // Slot Machine Effect
+        let iterations = 0;
+        const interval = setInterval(() => {
+            // Flash random words while calculating
+            const p = prefix[Math.floor(Math.random() * prefix.length)];
+            const m = model[Math.floor(Math.random() * model.length)];
+            textEl.innerText = `${p} ${m}...`;
+            textEl.style.opacity = 0.5;
+            
+            iterations++;
+            if (iterations > 10) {
+                clearInterval(interval);
+                finalizeIdea();
+            }
+        }, 50);
+
+        function finalizeIdea() {
+            // Pick final combination
+            const p = prefix[Math.floor(Math.random() * prefix.length)];
+            const m = model[Math.floor(Math.random() * model.length)];
+            const a = audience[Math.floor(Math.random() * audience.length)];
+            
+            textEl.innerText = `${p} ${m} ${a}`;
+            textEl.style.opacity = 1;
+            
+            // Generate Random Valuation (Between $1M and $10B)
+            const randomVal = Math.floor(Math.random() * 1000000000) + 1000000;
+            valEl.innerText = formatMoney(randomVal);
+            
+            // Color code valuation
+            if (randomVal > 100000000) valEl.style.color = "#a855f7"; // Purple for Unicorns
+            else valEl.style.color = "#4ade80"; // Green for normal
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,547 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Cinzel:wght@700&display=swap');
+
+    body { background: #050505; margin: 0; overflow: hidden; color: white; user-select: none; }
+
+    #game-stage {
+        position: absolute;
+        top: 50%; left: 50%;
+        width: 1300px; height: 900px;
+        transform-origin: center center;
+    }
+
+    /* THE TABLE */
+    .poker-table {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 1000px; height: 500px;
+        background: radial-gradient(#27ae60, #1e8449);
+        border: 30px solid #3e2723;
+        border-radius: 300px;
+        box-shadow: inset 0 0 150px rgba(0,0,0,0.9), 0 50px 100px rgba(0,0,0,0.7);
+    }
+
+    .community-area {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex; gap: 8px;
+        height: 90px;
+    }
+
+    .pot-container {
+        position: absolute;
+        top: 35%; left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.6);
+        border: 1px solid #f1c40f;
+        padding: 4px 15px;
+        border-radius: 15px;
+        color: #f1c40f;
+        font-family: 'Roboto Mono', monospace;
+        font-weight: bold;
+        font-size: 18px;
+        z-index: 5;
+    }
+
+    /* CARDS */
+    .card {
+        width: 60px; height: 88px;
+        background: white;
+        border-radius: 5px;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        font-family: 'Cinzel', serif;
+        font-size: 28px; font-weight: bold;
+        box-shadow: 2px 3px 5px rgba(0,0,0,0.4);
+        position: relative;
+    }
+    .red { color: #c0392b; }
+    .black { color: #2c3e50; }
+    .back {
+        background: repeating-linear-gradient(45deg, #c0392b, #c0392b 8px, #922b21 8px, #922b21 16px);
+        border: 3px solid white;
+    }
+
+    /* PLAYERS */
+    .seat { 
+        position: absolute; 
+        width: 120px; 
+        text-align: center; 
+        transition: all 0.3s; 
+    }
+    
+    .avatar {
+        width: 60px; height: 60px; margin: 0 auto;
+        border-radius: 50%; background: #34495e;
+        border: 3px solid #7f8c8d;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 30px; position: relative;
+        box-shadow: 0 5px 10px rgba(0,0,0,0.5);
+        background-size: cover;
+    }
+    
+    .active-turn .avatar { border-color: #f1c40f; box-shadow: 0 0 25px #f1c40f; transform: scale(1.1); }
+    .folded { opacity: 0.3; filter: grayscale(1); }
+    .winner .avatar { border-color: #2ecc71; box-shadow: 0 0 40px #2ecc71; }
+
+    .info-box {
+        background: rgba(0,0,0,0.85);
+        border: 1px solid #555;
+        border-radius: 4px;
+        padding: 4px;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 12px;
+        margin-top: 4px;
+        white-space: nowrap;
+    }
+
+    .hand-display { 
+        display: flex; justify-content: center; gap: 4px; 
+        margin-top: -15px; position: relative; z-index: 10; 
+        height: 60px;
+    }
+
+    .dealer-chip {
+        position: absolute; top: -5px; right: -5px;
+        width: 20px; height: 20px;
+        background: white; color: black;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: bold; font-size: 12px;
+        border: 1px solid black;
+    }
+
+    /* BUTTONS */
+    .controls {
+        position: absolute; bottom: 20px; width: 100%;
+        display: flex; justify-content: center; gap: 20px;
+        z-index: 100;
+    }
+    .btn {
+        padding: 15px 40px; font-size: 20px;
+        font-family: 'Cinzel', serif; font-weight: bold;
+        border: none; border-radius: 8px;
+        cursor: pointer; text-transform: uppercase;
+        box-shadow: 0 8px 0 rgba(0,0,0,0.5);
+    }
+    .btn:active { transform: translateY(4px); box-shadow: none; }
+    .btn-fold { background: #95a5a6; color: #2c3e50; }
+    .btn-push { background: #e74c3c; color: white; border-bottom: 4px solid #c0392b; }
+    .btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* STATUS TEXT */
+    #status-overlay {
+        position: absolute; top: 28%; width: 100%;
+        text-align: center; font-family: 'Cinzel', serif;
+        font-size: 40px; color: #f1c40f;
+        text-shadow: 0 4px 0 black;
+        pointer-events: none; z-index: 100;
+        transition: opacity 0.2s;
+    }
+
+    /* START SCREEN */
+    #start-screen {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.95); z-index: 999;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+    }
+</style>
+
+<div id="start-screen">
+    <h1 style="font-family:'Cinzel'; font-size:4rem; color:#f1c40f; margin:0;">THE FULL RING</h1>
+    <p style="font-family:'Roboto Mono'; color:#888; margin-bottom:40px;">8 Players. 1 Winner. All In or Fold.</p>
+    <button class="btn btn-push" onclick="startGame()">JOIN TABLE</button>
+</div>
+
+<div id="game-stage">
+    <div class="poker-table">
+        <div id="status-overlay"></div>
+        <div class="pot-container">POT: $<span id="pot-val">0</span></div>
+        <div class="community-area" id="board"></div>
+        
+        <div id="seats-container"></div>
+    </div>
+
+    <div class="controls">
+        <button id="btn-fold" class="btn btn-fold" onclick="humanAction('fold')" disabled>FOLD</button>
+        <button id="btn-push" class="btn btn-push" onclick="humanAction('push')" disabled>ALL IN</button>
+    </div>
+</div>
+
+<script>
+    // --- LAYOUT ENGINE ---
+    function setupSeats() {
+        const container = document.getElementById('seats-container');
+        const radiusX = 530; // Horizontal radius
+        const radiusY = 290; // Vertical radius
+        const total = 8;
+        
+        for (let i = 0; i < total; i++) {
+            const seat = document.createElement('div');
+            seat.className = 'seat';
+            seat.id = `seat-${i}`;
+            
+            // Calculate Position (Ellipse)
+            // Hero (index 0) at 90 degrees (Bottom) in standard math, but CSS coords are diff
+            // Let's manually offset so 0 is bottom
+            const angle = (i / total) * (2 * Math.PI) + (Math.PI / 2);
+            
+            const x = Math.cos(angle) * radiusX;
+            const y = Math.sin(angle) * radiusY;
+
+            // Centering logic
+            seat.style.left = `calc(50% + ${x}px - 60px)`; // -60 is half width
+            seat.style.top = `calc(50% + ${y}px - 50px)`;
+
+            seat.innerHTML = `
+                <div class="hand-display" id="hand-${i}"></div>
+                <div class="avatar">${getAvatarEmoji(i)}<div class="dealer-chip" id="d-${i}" style="display:none">D</div></div>
+                <div class="info-box">
+                    <div id="name-${i}">Player ${i}</div>
+                    <div style="color:#2ecc71">$<span id="stack-${i}">1000</span></div>
+                </div>
+            `;
+            container.appendChild(seat);
+        }
+    }
+
+    function getAvatarEmoji(i) {
+        const emojis = ["😎", "🤠", "🤖", "👽", "🦊", "🐯", "👻", "🤡"];
+        return emojis[i];
+    }
+    
+    function getName(i) {
+        const names = ["YOU", "Doyle", "Ivey", "Hellmuth", "Durrrr", "Isildur", "Negreanu", "Jungleman"];
+        return names[i];
+    }
+
+    // --- RESIZER ---
+    function resize() {
+        const stage = document.getElementById('game-stage');
+        const scale = Math.min(window.innerWidth / 1400, window.innerHeight / 1000) * 0.95;
+        stage.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+    window.onresize = resize;
+
+    // --- AUDIO ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function sfx(type) {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+
+        if (type === 'chip') {
+            osc.frequency.setValueAtTime(1200, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+            osc.start(); osc.stop(now + 0.05);
+        } else if (type === 'fold') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(); osc.stop(now + 0.1);
+        } else if (type === 'win') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.linearRampToValueAtTime(800, now + 0.2);
+            gain.gain.linearRampToValueAtTime(0, now + 0.5);
+            osc.start(); osc.stop(now + 0.5);
+        }
+    }
+
+    // --- GAME ENGINE ---
+    const SUITS = ['s','h','d','c'];
+    const RANKS = ['2','3','4','5','6','7','8','9','T','J','Q','K','A'];
+    const VALS = {'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'T':10,'J':11,'Q':12,'K':13,'A':14};
+
+    let players = [];
+    let deck = [], board = [], pot = 0;
+    let dealerIdx = 0, turnIdx = 0;
+    let highestBet = 0;
+    let gameActive = false;
+
+    // Init
+    setupSeats();
+    resize();
+
+    // 7-Card Evaluator (Compact)
+    function evaluateHand(h, c) {
+        const cards = [...h, ...c];
+        const suits = {s:[], h:[], d:[], c:[]}, counts = {};
+        cards.forEach(x => { suits[x.s].push(x); counts[x.v] = (counts[x.v]||0)+1; });
+        
+        let flush = Object.values(suits).find(arr => arr.length >= 5);
+        if(flush) flush.sort((a,b)=>b.v-a.v);
+        
+        const unique = [...new Set(cards.map(x=>x.v))].sort((a,b)=>b-a);
+        let straight = -1;
+        for(let i=0; i<=unique.length-5; i++) {
+            if(unique[i]-unique[i+4]===4) { straight = unique[i]; break; }
+        }
+        if(straight===-1 && unique.includes(14)&&unique.includes(5)&&unique.includes(4)&&unique.includes(3)&&unique.includes(2)) straight=5;
+
+        const quads=[], trips=[], pairs=[];
+        Object.keys(counts).forEach(k => {
+            let n = parseInt(k), count = counts[k];
+            if(count===4) quads.push(n);
+            else if(count===3) trips.push(n);
+            else if(count===2) pairs.push(n);
+        });
+        quads.sort((a,b)=>b-a); trips.sort((a,b)=>b-a); pairs.sort((a,b)=>b-a);
+
+        if(quads.length) return 8e6 + quads[0];
+        if(trips.length && pairs.length) return 7e6 + trips[0];
+        if(flush) return 6e6 + flush[0].v;
+        if(straight > -1) return 5e6 + straight;
+        if(trips.length) return 4e6 + trips[0];
+        if(pairs.length >= 2) return 3e6 + pairs[0]*100 + pairs[1];
+        if(pairs.length) return 2e6 + pairs[0];
+        return unique[0];
+    }
+
+    function startGame() {
+        document.getElementById('start-screen').style.display = 'none';
+        
+        // Create Players
+        for(let i=0; i<8; i++) {
+            players.push({
+                id: i, name: getName(i), stack: 1000, hand: [], 
+                active: true, allin: false, bet: 0
+            });
+            document.getElementById(`name-${i}`).innerText = getName(i);
+        }
+        
+        startRound();
+    }
+
+    function createDeck() {
+        let d = [];
+        for(let s of SUITS) for(let r of RANKS) d.push({r, s, v: VALS[r]});
+        for(let i=d.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [d[i],d[j]]=[d[j],d[i]]; }
+        return d;
+    }
+
+    function renderCard(c, el, back=false) {
+        const div = document.createElement('div');
+        div.className = 'card ' + (back ? 'back' : (['h','d'].includes(c.s)?'red':'black'));
+        if(!back) {
+            const suit = {'h':'♥','d':'♦','s':'♠','c':'♣'}[c.s];
+            div.innerHTML = `${c.r}<div style="font-size:24px">${suit}</div>`;
+        }
+        el.appendChild(div);
+    }
+
+    async function startRound() {
+        gameActive = true;
+        deck = createDeck();
+        board = [];
+        pot = 0;
+        highestBet = 20;
+        document.getElementById('board').innerHTML = '';
+        document.getElementById('status-overlay').innerText = '';
+
+        players.forEach((p, i) => {
+            p.active = p.stack > 0;
+            p.allin = false;
+            p.bet = 0;
+            p.hand = [deck.pop(), deck.pop()];
+            
+            // UI Reset
+            document.getElementById(`seat-${i}`).className = 'seat';
+            if(!p.active) document.getElementById(`seat-${i}`).classList.add('folded');
+            document.getElementById(`d-${i}`).style.display = (i===dealerIdx)?'flex':'none';
+            document.getElementById(`stack-${i}`).innerText = p.stack;
+            
+            const hDiv = document.getElementById(`hand-${i}`);
+            hDiv.innerHTML = '';
+            
+            if(p.active) {
+                if(i===0) { // Hero
+                    renderCard(p.hand[0], hDiv);
+                    renderCard(p.hand[1], hDiv);
+                } else {
+                    renderCard(null, hDiv, true);
+                    renderCard(null, hDiv, true);
+                }
+            }
+        });
+
+        // Blinds
+        postBet((dealerIdx+1)%8, 10);
+        postBet((dealerIdx+2)%8, 20);
+        updatePot();
+
+        turnIdx = (dealerIdx+3)%8;
+        nextTurn();
+    }
+
+    function postBet(pid, amt) {
+        const p = players[pid];
+        const actual = Math.min(p.stack, amt);
+        p.stack -= actual;
+        p.bet += actual;
+        pot += actual;
+        if(p.stack === 0) p.allin = true;
+        if(p.bet > highestBet) highestBet = p.bet;
+        
+        document.getElementById(`stack-${pid}`).innerText = p.stack;
+        sfx('chip');
+        updatePot();
+    }
+
+    function updatePot() { document.getElementById('pot-val').innerText = pot; }
+    function setStatus(msg) { document.getElementById('status-overlay').innerText = msg; }
+
+    async function nextTurn() {
+        // Clear Active Highlights
+        players.forEach((p,i) => document.getElementById(`seat-${i}`).classList.remove('active-turn'));
+
+        const active = players.filter(p => p.active);
+        const activeNonAllin = players.filter(p => p.active && !p.allin);
+
+        // Check Round End (1 Player left)
+        if(active.length === 1) {
+            endRound(active[0]);
+            return;
+        }
+
+        // Check Showdown (All bets matched)
+        const betsMatched = active.every(p => p.bet === highestBet || p.allin);
+        if(betsMatched) {
+            // If everyone matched, but there's only 0 or 1 person left who can act, run it out
+            if(activeNonAllin.length <= 1) {
+                runShowdown();
+                return;
+            }
+            // Logic gap for hackathon simplified: if bets matched, just run it out (assuming Action closes preflop mostly in push/fold)
+            runShowdown();
+            return;
+        }
+
+        // --- PROCESSING TURN ---
+        const p = players[turnIdx];
+        
+        // Skip dead/allin players
+        if(!p.active || p.allin) {
+            turnIdx = (turnIdx + 1) % 8;
+            setTimeout(nextTurn, 50); // Fast skip
+            return;
+        }
+
+        document.getElementById(`seat-${turnIdx}`).classList.add('active-turn');
+        await new Promise(r => setTimeout(r, 600)); // Thinking time
+
+        if(p.id === 0) {
+            // HERO
+            const toCall = highestBet - p.bet;
+            setStatus(toCall > 0 ? `CALL ${toCall} OR FOLD` : "YOUR ACTION");
+            document.getElementById('btn-fold').disabled = false;
+            document.getElementById('btn-push').disabled = false;
+        } else {
+            // BOT
+            botAI(p);
+        }
+    }
+
+    function botAI(p) {
+        const h = p.hand;
+        // Simple Heuristic: 2-14 val. Pair= +20. Suited= +5.
+        // Range roughly 4 to 48.
+        let score = h[0].v + h[1].v + (h[0].v===h[1].v ? 20 : 0) + (h[0].s===h[1].s ? 5 : 0);
+        
+        const toCall = highestBet - p.bet;
+        // With 8 players, range must be tighter (score > 28 is roughly top 20%)
+        const threshold = (toCall > 0) ? 30 : 25; 
+
+        if(score > threshold) {
+            setStatus(`${p.name} CALLS`);
+            postBet(p.id, 10000); // Push
+        } else {
+            setStatus(`${p.name} FOLDS`);
+            p.active = false;
+            document.getElementById(`seat-${p.id}`).classList.add('folded');
+            sfx('fold');
+        }
+
+        turnIdx = (turnIdx + 1) % 8;
+        nextTurn();
+    }
+
+    function humanAction(act) {
+        document.getElementById('btn-fold').disabled = true;
+        document.getElementById('btn-push').disabled = true;
+
+        if(act === 'fold') {
+            players[0].active = false;
+            document.getElementById('seat-0').classList.add('folded');
+            sfx('fold');
+        } else {
+            postBet(0, 10000);
+        }
+
+        turnIdx = (turnIdx + 1) % 8;
+        nextTurn();
+    }
+
+    async function runShowdown() {
+        setStatus("SHOWDOWN");
+        
+        // Reveal Bots
+        players.forEach(p => {
+            if(p.active && p.id !== 0) {
+                const div = document.getElementById(`hand-${p.id}`);
+                div.innerHTML = '';
+                renderCard(p.hand[0], div);
+                renderCard(p.hand[1], div);
+            }
+        });
+
+        // Run Board
+        for(let i=0; i<5; i++) {
+            if(board.length <= i) {
+                await new Promise(r => setTimeout(r, 800));
+                let c = deck.pop();
+                board.push(c);
+                renderCard(c, document.getElementById('board'));
+                sfx('chip');
+            }
+        }
+        
+        await new Promise(r => setTimeout(r, 1000));
+        
+        // Determine Winner
+        const active = players.filter(p => p.active);
+        active.forEach(p => p.score = evaluateHand(p.hand, board));
+        active.sort((a,b) => b.score - a.score);
+
+        const winner = active[0];
+        setStatus(`${winner.name} WINS!`);
+        document.getElementById(`seat-${winner.id}`).classList.add('winner');
+        winner.stack += pot;
+        sfx('win');
+        
+        setTimeout(() => {
+            dealerIdx = (dealerIdx + 1) % 8;
+            startRound();
+        }, 5000);
+    }
+
+    function endRound(winner) {
+        setStatus(`${winner.name} WINS!`);
+        document.getElementById(`seat-${winner.id}`).classList.add('winner');
+        winner.stack += pot;
+        sfx('win');
+        setTimeout(() => {
+            dealerIdx = (dealerIdx + 1) % 8;
+            startRound();
+        }, 2000);
+    }
+</script>
+{% endblock %}

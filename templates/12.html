@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+    /* CYBERPUNK BACKGROUND */
+    .cyber-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        background: #050505;
+        background-image: 
+            linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
+        background-size: 40px 40px;
+        perspective: 500px;
+        transform-style: preserve-3d;
+        overflow: hidden;
+    }
+
+    .cyber-bg::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 40%;
+        background: linear-gradient(to top, rgba(0,229,255,0.2), transparent);
+        box-shadow: 0 -10px 50px rgba(0, 255, 255, 0.3);
+    }
+
+    /* GAME UI CONTAINER */
+    .arcade-console {
+        position: relative;
+        background: rgba(10, 10, 10, 0.85);
+        backdrop-filter: blur(5px);
+        padding: 40px;
+        border: 2px solid #00e5ff;
+        border-radius: 15px;
+        box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+        max-width: 450px;
+        margin: 20px auto;
+        font-family: 'Orbitron', sans-serif;
+        color: #00e5ff;
+        text-align: center;
+    }
+
+    h2 {
+        font-size: 2.5rem;
+        text-transform: uppercase;
+        letter-spacing: 4px;
+        margin-bottom: 10px;
+        text-shadow: 0 0 10px #00e5ff;
+    }
+
+    .hud-display {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        font-size: 1.2rem;
+    }
+
+    /* NEW TIMER BAR STYLES */
+    .timer-container {
+        width: 100%;
+        height: 10px;
+        background: #333;
+        border: 1px solid #555;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    .timer-fill {
+        height: 100%;
+        width: 100%;
+        background: #00ff00;
+        box-shadow: 0 0 10px #00ff00;
+        transition: width 0.05s linear; /* Smooth shrinking */
+    }
+
+    .chase-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 12px;
+        margin: 0 auto;
+    }
+
+    .chase-btn {
+        aspect-ratio: 1;
+        background: rgba(0, 0, 0, 0.6);
+        border: 1px solid #333;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.1s;
+    }
+    
+    .active-btn {
+        background: #00e5ff !important;
+        border-color: #fff !important;
+        box-shadow: 0 0 15px #00e5ff, inset 0 0 10px rgba(255,255,255,0.8) !important;
+        transform: scale(1.1);
+        z-index: 10;
+    }
+
+    .game-over-glow {
+        box-shadow: 0 0 50px rgba(255, 0, 50, 0.5);
+        border-color: #ff0033;
+    }
+    
+    #start-msg {
+        margin-top: 20px;
+        font-weight: bold;
+        min-height: 24px;
+        color: #fff;
+    }
+</style>
+
+<div class="cyber-bg"></div>
+
+<div class="arcade-console" id="console-box">
+    <h2>Neon Chase</h2>
+    
+    <div class="hud-display">
+        <span>STATUS: <span id="status-txt">READY</span></span>
+        <span>SCORE: <span id="score-val">0</span></span>
+    </div>
+
+    <div class="timer-container">
+        <div id="timer-bar" class="timer-fill"></div>
+    </div>
+
+    <div class="chase-grid" id="c-grid"></div>
+    
+    <div id="start-msg">Click the GLOWING square to start</div>
+</div>
+
+<script>
+    const cGrid = document.getElementById('c-grid');
+    const scoreSpan = document.getElementById('score-val');
+    const statusTxt = document.getElementById('status-txt');
+    const consoleBox = document.getElementById('console-box');
+    const startMsg = document.getElementById('start-msg');
+    const timerBar = document.getElementById('timer-bar');
+    
+    let score = 0;
+    let activeIndex = -1;
+    let gameActive = false;
+    
+    // Timer Variables
+    let maxTime = 2000; // Starting time per click (ms)
+    let timeLeft = 0;
+    let lastTime = 0;
+    let timerLoopId;
+
+    // Create 25 buttons
+    for (let i = 0; i < 25; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'chase-btn';
+        btn.onclick = () => handleClick(i);
+        cGrid.appendChild(btn);
+    }
+
+    function startGame() {
+        score = 0;
+        scoreSpan.innerText = "0";
+        gameActive = true;
+        
+        // Reset Visuals
+        statusTxt.innerText = "ACTIVE";
+        statusTxt.style.color = "#00ff00";
+        consoleBox.classList.remove('game-over-glow');
+        startMsg.innerText = "DRAINING...";
+        
+        // Initial Difficulty
+        maxTime = 2000; 
+        
+        moveTarget();
+    }
+
+    function moveTarget() {
+        // Clear old active
+        const old = document.querySelector('.active-btn');
+        if (old) old.classList.remove('active-btn');
+
+        // Pick new random
+        let newIdx;
+        do {
+            newIdx = Math.floor(Math.random() * 25);
+        } while (newIdx === activeIndex);
+        
+        activeIndex = newIdx;
+        cGrid.children[activeIndex].classList.add('active-btn');
+
+        // Reset the countdown for this turn
+        resetTimer();
+    }
+
+    function resetTimer() {
+        // Decrease max time as score goes up (makes it faster)
+        // Cap the speed at 400ms so it's not impossible
+        const difficultyMod = Math.min(1500, score * 50); 
+        const currentTurnTime = Math.max(400, 2000 - difficultyMod);
+
+        timeLeft = currentTurnTime;
+        maxTime = currentTurnTime; // Remember what total was for bar % calculation
+        
+        // Ensure loop is running
+        cancelAnimationFrame(timerLoopId);
+        lastTime = performance.now();
+        timerLoopId = requestAnimationFrame(updateTimer);
+    }
+
+    function updateTimer(now) {
+        if (!gameActive) return;
+
+        const delta = now - lastTime;
+        lastTime = now;
+        timeLeft -= delta;
+
+        // Update Visual Bar
+        const percentage = (timeLeft / maxTime) * 100;
+        timerBar.style.width = percentage + "%";
+
+        // Color Logic: Green -> Yellow -> Red
+        if (percentage > 50) timerBar.style.backgroundColor = "#00ff00";
+        else if (percentage > 20) timerBar.style.backgroundColor = "#ffcc00";
+        else timerBar.style.backgroundColor = "#ff0000";
+
+        // Check Death
+        if (timeLeft <= 0) {
+            triggerGameOver("TIME UP");
+        } else {
+            timerLoopId = requestAnimationFrame(updateTimer);
+        }
+    }
+
+    function handleClick(idx) {
+        if (!gameActive) {
+            if (idx === activeIndex) startGame(); 
+            return;
+        }
+
+        if (idx === activeIndex) {
+            // SUCCESS
+            score++;
+            scoreSpan.innerText = score;
+            moveTarget(); // This resets the timer
+        } else {
+            // FAILURE (Clicked wrong one)
+            triggerGameOver("MISS");
+        }
+    }
+
+    function triggerGameOver(reason) {
+        gameActive = false;
+        cancelAnimationFrame(timerLoopId);
+        
+        statusTxt.innerText = reason;
+        statusTxt.style.color = "red";
+        
+        startMsg.innerText = "System Failure. Click glowing square to reboot.";
+        consoleBox.classList.add('game-over-glow');
+        timerBar.style.width = "0%";
+    }
+
+    // Initialize first target (idle mode)
+    moveTarget();
+</script>
+{% endblock %}

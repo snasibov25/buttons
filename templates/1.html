@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Titan+One&display=swap');
+
+    /* BAKERY BACKGROUND */
+    .bakery-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, #f7d794 0%, #f3a683 100%);
+        z-index: -1;
+        overflow: hidden;
+    }
+
+    /* Ray Burst Effect behind cookie */
+    .sunburst {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 200vmax;
+        height: 200vmax;
+        background: repeating-conic-gradient(
+            rgba(255,255,255,0.3) 0deg 15deg,
+            transparent 15deg 30deg
+        );
+        transform: translate(-50%, -50%);
+        animation: rotateBurst 60s linear infinite;
+        z-index: -1;
+        pointer-events: none;
+    }
+
+    @keyframes rotateBurst { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+    /* LAYOUT */
+    .game-layout {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 90%;
+        max-width: 800px;
+        margin: 20px auto;
+        font-family: 'Titan One', cursive;
+        color: #594028;
+    }
+
+    /* SCORE BOARD */
+    .score-board {
+        background: rgba(255, 255, 255, 0.8);
+        padding: 15px 40px;
+        border-radius: 50px;
+        font-size: 3rem;
+        box-shadow: 0 10px 0 rgba(89, 64, 40, 0.2);
+        margin-bottom: 20px;
+        text-shadow: 2px 2px 0 #fff;
+        z-index: 10;
+        min-width: 300px;
+        text-align: center;
+    }
+
+    .cps-display {
+        font-size: 1rem;
+        color: #888;
+        margin-top: 5px;
+    }
+
+    /* THE COOKIE */
+    .cookie-container {
+        position: relative;
+        width: 250px;
+        height: 250px;
+        cursor: pointer;
+        transition: transform 0.05s;
+        z-index: 10;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .cookie-container:active { transform: scale(0.95); }
+
+    .big-cookie {
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 30% 30%, #e1b12c, #cd6133);
+        border-radius: 50%;
+        box-shadow: 
+            inset -10px -10px 20px rgba(0,0,0,0.2),
+            0 20px 30px rgba(0,0,0,0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Choco Chips */
+    .chip {
+        position: absolute;
+        background: #3c2415;
+        border-radius: 50%;
+        opacity: 0.8;
+        box-shadow: 1px 1px 2px rgba(255,255,255,0.2);
+    }
+
+    /* UPGRADE SHOP */
+    .shop-panel {
+        margin-top: 40px;
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+    }
+
+    .upgrade-btn {
+        background: white;
+        border: 4px solid #594028;
+        border-radius: 15px;
+        padding: 15px;
+        cursor: pointer;
+        font-family: 'Titan One', cursive;
+        color: #594028;
+        text-align: left;
+        transition: all 0.1s;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .upgrade-btn:hover { transform: translateY(-3px); box-shadow: 0 5px 0 #594028; }
+    .upgrade-btn:active { transform: translateY(0); box-shadow: 0 0 0; }
+    
+    .upgrade-btn.disabled { opacity: 0.6; filter: grayscale(1); cursor: not-allowed; }
+
+    .price-tag { color: #e1b12c; font-size: 1.2rem; text-shadow: 1px 1px 0 #000; }
+    .owned-count { float: right; font-size: 0.8rem; opacity: 0.5; }
+
+    /* FLOATING TEXT ANIMATION */
+    .float-text {
+        position: absolute;
+        color: white;
+        font-weight: bold;
+        font-size: 1.5rem;
+        pointer-events: none;
+        animation: floatUp 1s forwards;
+        text-shadow: 0 2px 0 rgba(0,0,0,0.2);
+    }
+
+    @keyframes floatUp {
+        0% { transform: translateY(0) scale(1); opacity: 1; }
+        100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
+    }
+
+    /* CRUMBS */
+    .crumb {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        background: #594028;
+        pointer-events: none;
+        border-radius: 2px;
+    }
+
+</style>
+
+<div class="bakery-bg">
+    <div class="sunburst"></div>
+</div>
+
+<div class="game-layout">
+    <div class="score-board">
+        <span id="score-display">0</span>
+        <div class="cps-display" id="cps-display">per second: 0</div>
+    </div>
+
+    <div class="cookie-container" id="cookie-btn">
+        <div class="big-cookie">
+            <div class="chip" style="width: 30px; height: 30px; top: 20%; left: 30%;"></div>
+            <div class="chip" style="width: 20px; height: 20px; top: 60%; left: 20%;"></div>
+            <div class="chip" style="width: 25px; height: 25px; top: 50%; left: 60%;"></div>
+            <div class="chip" style="width: 15px; height: 15px; top: 20%; left: 70%;"></div>
+            <div class="chip" style="width: 35px; height: 35px; top: 70%; left: 50%;"></div>
+        </div>
+    </div>
+
+    <div class="shop-panel">
+        <button class="upgrade-btn" id="btn-cursor" onclick="buyUpgrade('cursor')">
+            <div>👆 Auto-Clicker</div>
+            <div class="price-tag" id="cost-cursor">15</div>
+            <div class="owned-count" id="count-cursor">0</div>
+        </button>
+
+        <button class="upgrade-btn" id="btn-grandma" onclick="buyUpgrade('grandma')">
+            <div>👵 Grandma</div>
+            <div class="price-tag" id="cost-grandma">100</div>
+            <div class="owned-count" id="count-grandma">0</div>
+        </button>
+
+        <button class="upgrade-btn" id="btn-oven" onclick="buyUpgrade('oven')">
+            <div>🔥 Super Oven</div>
+            <div class="price-tag" id="cost-oven">500</div>
+            <div class="owned-count" id="count-oven">0</div>
+        </button>
+    </div>
+    
+    <button onclick="resetGame()" style="margin-top:30px; background:none; border:none; color:#594028; opacity:0.5; cursor:pointer;">Reset Progress</button>
+</div>
+
+<script>
+    // --- GAME STATE ---
+    let game = {
+        cookies: 0,
+        clickPower: 1,
+        autoCookies: 0,
+        upgrades: {
+            cursor: { cost: 15, count: 0, cps: 1, name: "Auto-Clicker" },
+            grandma: { cost: 100, count: 0, cps: 5, name: "Grandma" },
+            oven: { cost: 500, count: 0, cps: 20, name: "Super Oven" }
+        }
+    };
+
+    // Load Save
+    if(localStorage.getItem('cookieSave')) {
+        try {
+            game = JSON.parse(localStorage.getItem('cookieSave'));
+        } catch(e) { console.log("Save corrupted"); }
+    }
+
+    const scoreEl = document.getElementById('score-display');
+    const cpsEl = document.getElementById('cps-display');
+    const cookieBtn = document.getElementById('cookie-btn');
+
+    // --- AUDIO ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playCrunch() {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        // Short, low noise burst
+        osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.1);
+        osc.type = 'sawtooth';
+        
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    // --- CORE LOGIC ---
+    function updateUI() {
+        scoreEl.innerText = Math.floor(game.cookies);
+        cpsEl.innerText = `per second: ${game.autoCookies}`;
+        
+        // Update Buttons
+        for(let key in game.upgrades) {
+            const up = game.upgrades[key];
+            const btn = document.getElementById(`btn-${key}`);
+            document.getElementById(`cost-${key}`).innerText = Math.floor(up.cost);
+            document.getElementById(`count-${key}`).innerText = up.count;
+            
+            if(game.cookies >= up.cost) {
+                btn.classList.remove('disabled');
+            } else {
+                btn.classList.add('disabled');
+            }
+        }
+        
+        // Save
+        localStorage.setItem('cookieSave', JSON.stringify(game));
+    }
+
+    function spawnText(x, y, text) {
+        const el = document.createElement('div');
+        el.className = 'float-text';
+        el.innerText = text;
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 1000);
+    }
+
+    function spawnCrumbs(x, y) {
+        for(let i=0; i<5; i++) {
+            const c = document.createElement('div');
+            c.className = 'crumb';
+            c.style.left = x + 'px';
+            c.style.top = y + 'px';
+            document.body.appendChild(c);
+            
+            // Physics animation
+            const angle = Math.random() * Math.PI * 2;
+            const velocity = Math.random() * 50 + 20;
+            const tx = Math.cos(angle) * velocity;
+            const ty = Math.sin(angle) * velocity + 100; // Gravity down
+            
+            c.animate([
+                { transform: 'translate(0,0)', opacity: 1 },
+                { transform: `translate(${tx}px, ${ty}px)`, opacity: 0 }
+            ], {
+                duration: 500 + Math.random() * 500,
+                easing: 'cubic-bezier(0, .9, .57, 1)',
+                fill: 'forwards'
+            });
+            
+            setTimeout(() => c.remove(), 1000);
+        }
+    }
+
+    // Click Handler
+    cookieBtn.addEventListener('mousedown', (e) => {
+        game.cookies += game.clickPower;
+        playCrunch();
+        updateUI();
+        
+        const rect = cookieBtn.getBoundingClientRect();
+        const x = e.clientX;
+        const y = e.clientY;
+        
+        spawnText(x, y, "+" + game.clickPower);
+        spawnCrumbs(x, y);
+    });
+
+    // Buy Handler
+    window.buyUpgrade = function(type) {
+        const up = game.upgrades[type];
+        if(game.cookies >= up.cost) {
+            game.cookies -= up.cost;
+            up.count++;
+            up.cost = Math.floor(up.cost * 1.15); // Price increase
+            
+            // Recalculate CPS
+            recalcCPS();
+            updateUI();
+        }
+    };
+
+    function recalcCPS() {
+        let cps = 0;
+        for(let key in game.upgrades) {
+            cps += game.upgrades[key].count * game.upgrades[key].cps;
+        }
+        game.autoCookies = cps;
+    }
+
+    function resetGame() {
+        if(confirm("Wipe save?")) {
+            localStorage.removeItem('cookieSave');
+            location.reload();
+        }
+    }
+
+    // Auto Loop
+    setInterval(() => {
+        if(game.autoCookies > 0) {
+            game.cookies += game.autoCookies / 10; // 10 ticks per second
+            updateUI();
+        }
+    }, 100);
+
+    // Initial render
+    recalcCPS();
+    updateUI();
+
+</script>
+{% endblock %}

@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+    /* PIXEL WORLD BACKGROUND */
+    .pixel-world {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #4facfe;
+        z-index: -1;
+        overflow: hidden;
+    }
+
+    /* CSS CLOUDS */
+    .cloud {
+        position: absolute;
+        background: #fff;
+        width: 100px;
+        height: 40px;
+        border-radius: 5px;
+        box-shadow: 10px 10px 0 0 rgba(0,0,0,0.1);
+    }
+    .cloud::after, .cloud::before {
+        content: '';
+        position: absolute;
+        background: #fff;
+        z-index: -1;
+    }
+    .cloud::after { width: 40px; height: 40px; top: -20px; left: 20px; border-radius: 5px; }
+    .cloud::before { width: 50px; height: 50px; top: -30px; left: 40px; border-radius: 5px; }
+
+    /* Moving animation */
+    .c1 { top: 20%; left: -20%; animation: drift 15s linear infinite; transform: scale(2); }
+    .c2 { top: 50%; left: -20%; animation: drift 25s linear infinite reverse; opacity: 0.8; }
+    .c3 { top: 10%; left: -20%; animation: drift 30s linear infinite; transform: scale(0.5); }
+
+    @keyframes drift {
+        from { left: -20%; }
+        to { left: 120%; }
+    }
+
+    /* DEVICE CONTAINER */
+    .game-container {
+        font-family: 'VT323', monospace;
+        background: #f0f0f0;
+        width: 320px;
+        padding: 20px;
+        border-radius: 10px 10px 40px 10px;
+        box-shadow: 
+            -10px 10px 0 #ccc,
+            -20px 20px 0 rgba(0,0,0,0.2);
+        margin: 50px auto;
+        border: 4px solid #333;
+        position: relative;
+        text-align: center;
+    }
+
+    /* SCREEN */
+    .screen {
+        background: #9bbc0f; /* Original Gameboy Green */
+        color: #0f380f;
+        padding: 20px;
+        border: 4px solid #555;
+        border-radius: 5px;
+        box-shadow: inset 2px 2px 5px rgba(0,0,0,0.2);
+        min-height: 300px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* SCANLINES */
+    .screen::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: linear-gradient(rgba(15, 56, 15, 0.1) 50%, transparent 50%);
+        background-size: 100% 4px;
+        pointer-events: none;
+    }
+
+    /* THE EGG */
+    .egg {
+        font-size: 80px;
+        cursor: pointer;
+        transition: transform 0.1s;
+        user-select: none;
+        filter: drop-shadow(4px 4px 0 #0f380f);
+    }
+    
+    .egg:hover { transform: translateY(-2px); }
+    .egg:active { transform: translateY(2px) scale(0.95); }
+
+    /* ANIMATIONS */
+    .shake-egg { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both infinite; }
+    
+    @keyframes shake {
+        10%, 90% { transform: translate3d(-2px, 0, 0) rotate(-5deg); }
+        20%, 80% { transform: translate3d(4px, 0, 0) rotate(5deg); }
+        30%, 50%, 70% { transform: translate3d(-6px, 0, 0) rotate(-10deg); }
+        40%, 60% { transform: translate3d(6px, 0, 0) rotate(10deg); }
+    }
+
+    /* RESULT CARD */
+    .result-card {
+        display: none;
+        animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        width: 100%;
+    }
+
+    @keyframes popUp {
+        from { transform: scale(0); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+
+    h2 { margin: 0; font-size: 3rem; text-transform: uppercase; line-height: 1; }
+    .job-title { font-size: 1.2rem; margin-bottom: 10px; border-bottom: 2px dashed #0f380f; padding-bottom: 5px; display: inline-block;}
+
+    .stats-box {
+        text-align: left;
+        width: 100%;
+        margin-top: 15px;
+        font-size: 1.2rem;
+    }
+    
+    .stat-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+
+    /* CONTROLS */
+    .controls {
+        margin-top: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 10px;
+    }
+    
+    .d-pad {
+        width: 60px; height: 60px;
+        background: #333;
+        border-radius: 50%; /* Fake D-pad look */
+        position: relative;
+    }
+    
+    .btn-action {
+        background: #d32f2f;
+        color: white;
+        border: none;
+        width: 40px; height: 40px;
+        border-radius: 50%;
+        font-family: 'VT323';
+        font-size: 12px;
+        box-shadow: 2px 2px 0 #555;
+        cursor: pointer;
+    }
+    .btn-action:active { transform: translateY(2px); box-shadow: 0 0 0; }
+
+</style>
+
+<div class="pixel-world">
+    <div class="cloud c1"></div>
+    <div class="cloud c2"></div>
+    <div class="cloud c3"></div>
+</div>
+
+<div class="game-container">
+    <div class="screen" id="screen-display">
+        <div id="egg-view">
+            <div style="margin-bottom:20px; font-size: 1.5rem;">READY TO HATCH?</div>
+            <div class="egg" id="main-egg" onclick="hatchEgg()">🥚</div>
+            <div style="margin-top:20px; font-size: 1rem; opacity: 0.7;">CLICK EGG</div>
+        </div>
+
+        <div id="result-view" class="result-card">
+            <div style="font-size: 1.2rem;">IT'S A...</div>
+            <h2 id="baby-name">UNKNOWN</h2>
+            <div class="job-title" id="baby-job">FUTURE ???</div>
+            
+            <div class="stats-box">
+                <div class="stat-row">
+                    <span>CUTENESS</span>
+                    <span id="stat-cute">|||||</span>
+                </div>
+                <div class="stat-row">
+                    <span>CHAOS</span>
+                    <span id="stat-chaos">||</span>
+                </div>
+                <div class="stat-row">
+                    <span>SLEEP</span>
+                    <span id="stat-sleep">|</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="d-pad">
+            <div style="position:absolute; top:10px; left:22px; width:16px; height:40px; background:#111;"></div>
+            <div style="position:absolute; top:22px; left:10px; width:40px; height:16px; background:#111;"></div>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-action" onclick="resetMachine()">B</button>
+            <button class="btn-action" onclick="hatchEgg()">A</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const names = ["Oliver", "Luna", "Milo", "Jasper", "Hazel", "Finn", "Cleo", "Felix", "Ivy", "Arlo", "Nova", "Atlas"];
+    const jobs = ["Space Pirate", "Pro Napper", "Cyber Ninja", "Dog Whisperer", "Mars Colonist", "Jazz Pianist", "Meme Lord", "Wizard"];
+    
+    const eggView = document.getElementById('egg-view');
+    const resultView = document.getElementById('result-view');
+    const egg = document.getElementById('main-egg');
+    let isHatching = false;
+
+    // --- AUDIO (8-BIT SYNTH) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playTone(freq, duration, type='square') {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function playVictory() {
+        // Simple arpeggio
+        playTone(523.25, 0.1); // C5
+        setTimeout(() => playTone(659.25, 0.1), 100); // E5
+        setTimeout(() => playTone(783.99, 0.1), 200); // G5
+        setTimeout(() => playTone(1046.50, 0.4), 300); // C6
+    }
+
+    function playCrack() {
+        playTone(150, 0.1, 'sawtooth');
+    }
+
+    // --- GAME LOGIC ---
+    function hatchEgg() {
+        if (isHatching || resultView.style.display === 'block') return;
+        isHatching = true;
+
+        // Shake animation
+        egg.classList.add('shake-egg');
+        
+        // Play crack sounds
+        playCrack();
+        setTimeout(playCrack, 200);
+        setTimeout(playCrack, 400);
+
+        setTimeout(() => {
+            egg.classList.remove('shake-egg');
+            egg.innerText = "💥"; // Explosion
+            
+            setTimeout(() => {
+                revealBaby();
+            }, 300);
+        }, 1000);
+    }
+
+    function revealBaby() {
+        eggView.style.display = 'none';
+        resultView.style.display = 'block';
+        
+        // Generate Content
+        document.getElementById('baby-name').innerText = names[Math.floor(Math.random() * names.length)];
+        document.getElementById('baby-job').innerText = "Future " + jobs[Math.floor(Math.random() * jobs.length)];
+        
+        // Generate Stats Bars
+        document.getElementById('stat-cute').innerText = generateBar();
+        document.getElementById('stat-chaos').innerText = generateBar();
+        document.getElementById('stat-sleep').innerText = generateBar();
+
+        playVictory();
+        isHatching = false;
+    }
+
+    function generateBar() {
+        const fill = Math.floor(Math.random() * 8) + 1;
+        return "▮".repeat(fill) + "▯".repeat(8 - fill);
+    }
+
+    function resetMachine() {
+        eggView.style.display = 'block';
+        resultView.style.display = 'none';
+        egg.innerText = "🥚";
+        playTone(200, 0.1); // Reset sound
+    }
+</script>
+{% endblock %}

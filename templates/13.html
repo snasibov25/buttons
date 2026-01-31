@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Rye&display=swap');
+
+    /* THE FULL PAGE BACKGROUND */
+    .western-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        /* Desert Sunset Gradient */
+        background: linear-gradient(to bottom, 
+            #4a1c03 0%,   /* Dark night sky */
+            #ad4a05 40%,  /* Sunset orange */
+            #ff9d00 50%,  /* Horizon sun */
+            #8c5e2e 50%,  /* Desert ground horizon */
+            #573b1c 100%  /* Foreground ground */
+        );
+    }
+
+    /* Add a sun */
+    .western-bg::after {
+        content: '';
+        position: absolute;
+        top: 35%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 150px;
+        height: 150px;
+        background: #ffda77;
+        border-radius: 50%;
+        box-shadow: 0 0 50px #ff9d00;
+        opacity: 0.8;
+    }
+
+    /* THE GAME CONTAINER - WANTED POSTER STYLE */
+    .duel-container {
+        position: relative;
+        background: #f4e4bc; /* Parchment paper color */
+        padding: 40px;
+        border-radius: 5px;
+        /* A faux-wood border using gradients */
+        border: 15px solid transparent;
+        border-image: linear-gradient(to right, #5d4037, #8d6e63, #5d4037) 1;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        text-align: center;
+        max-width: 500px;
+        margin: 20px auto;
+        font-family: 'Rye', cursive; /* Western font */
+        color: #3e2723;
+    }
+
+    /* Add "nails" to the corners */
+    .duel-container::before, .duel-container::after {
+        content: '•';
+        position: absolute;
+        color: #333;
+        font-size: 30px;
+        top: -25px;
+    }
+    .duel-container::before { left: 10px; }
+    .duel-container::after { right: 10px; }
+
+    h2 {
+        font-size: 3rem;
+        margin-bottom: 20px;
+        text-transform: uppercase;
+        text-shadow: 2px 2px 0px #d4b483;
+        border-bottom: 3px double #3e2723;
+        display: inline-block;
+    }
+
+    #duel-msg {
+        font-size: 1.5rem;
+        margin-bottom: 30px;
+        font-weight: bold;
+    }
+
+    /* THE BUTTON - RUSTIC METAL STYLE */
+    #duel-btn {
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        font-size: 32px;
+        font-family: 'Rye', cursive;
+        border: 8px solid #2c1b15;
+        cursor: pointer;
+        transition: transform 0.1s, background 0.2s;
+        text-transform: uppercase;
+        box-shadow: inset 0 0 30px rgba(0,0,0,0.5), 0 10px 20px rgba(0,0,0,0.3);
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+    #duel-btn:active { transform: scale(0.95); box-shadow: inset 0 0 10px rgba(0,0,0,0.8); }
+    
+    /* Game States */
+    .state-idle { background-color: #8d6e63; color: #f4e4bc; } /* Rustic Brown */
+    .state-wait { background-color: #c0392b; color: white; border-color: #7f241b !important; } /* Danger Red */
+    .state-draw { background-color: #27ae60; color: white; border-color: #196f3d !important;} /* Go Green */
+</style>
+
+<div class="western-bg"></div>
+
+<div class="duel-container">
+    <h2>Wanted</h2>
+    <div id="duel-msg">Fastest finger in the West. Click to start.</div>
+    <button id="duel-btn" class="state-idle" onclick="handleDuel()">START DUEL</button>
+</div>
+
+<script>
+    // The logic remains exactly the same as before
+    const dBtn = document.getElementById('duel-btn');
+    const dMsg = document.getElementById('duel-msg');
+    let state = 'idle'; // idle, waiting, draw
+    let startTime = 0;
+    let timeoutId = null;
+
+    function handleDuel() {
+        if (state === 'idle' || state === 'result') {
+            // Start the round
+            state = 'waiting';
+            dBtn.className = 'state-wait';
+            dBtn.innerText = "STEADY...";
+            dMsg.innerText = "Wait for the signal...";
+            
+            // Random time between 2 and 6 seconds
+            const delay = 2000 + Math.random() * 4000;
+            
+            timeoutId = setTimeout(() => {
+                state = 'draw';
+                dBtn.className = 'state-draw';
+                dBtn.innerText = "DRAW!";
+                startTime = Date.now();
+            }, delay);
+        } 
+        else if (state === 'waiting') {
+            // Clicked too early!
+            clearTimeout(timeoutId);
+            state = 'result';
+            dBtn.className = 'state-wait'; // Red
+            dBtn.innerText = "FOUL!";
+            dMsg.innerText = "You fired too soon, partner!";
+        } 
+        else if (state === 'draw') {
+            // Success!
+            const reactionTime = Date.now() - startTime;
+            state = 'result';
+            dBtn.className = 'state-idle';
+            dBtn.innerText = reactionTime + " ms";
+            
+            if(reactionTime < 200) {
+                 dMsg.innerText = "Lightning fast! You're a legend.";
+            } else if (reactionTime < 350) {
+                 dMsg.innerText = "Not bad, cowboy. Not bad.";
+            } else {
+                 dMsg.innerText = "Too slow. You're snake food.";
+            }
+        }
+    }
+</script>
+{% endblock %}
