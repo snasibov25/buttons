@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Security Check</title>
+    <style>
+        body {
+            background-color: #f9f9f9;
+            font-family: Roboto, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        /* THE CAPTCHA CARD */
+        .captcha-box {
+            background: white;
+            width: 400px; /* Standard width */
+            box-shadow: 0 0 4px 1px rgba(0,0,0,0.08);
+            border: 1px solid #d3d3d3;
+            padding: 8px;
+            position: relative;
+        }
+
+        /* HEADER (BLUE PART) */
+        .header {
+            background-color: #3e7cfc; /* Google Blue */
+            color: white;
+            padding: 24px;
+            margin: -8px -8px 10px -8px; /* Bleed to edges */
+        }
+
+        .header h2 { margin: 0; font-size: 1.5rem; font-weight: 500; }
+        .header p { margin: 10px 0 0 0; font-size: 0.9rem; }
+        .strong-text { font-weight: 900; font-size: 1.6rem; display: block; margin-top: 5px; }
+
+        /* IMAGE GRID */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+        }
+
+        .tile {
+            position: relative;
+            width: 100%;
+            height: 125px; /* Roughly square */
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .tile img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.1s;
+        }
+
+        /* SELECTION STATE (THE CHECKMARK) */
+        .tile.selected img {
+            transform: scale(0.8); /* Shrink effect */
+        }
+
+        .check-overlay {
+            display: none;
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            background: #3e7cfc;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            text-align: center;
+            line-height: 24px;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .tile.selected .check-overlay {
+            display: block;
+        }
+
+        /* FOOTER */
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0 5px 0;
+            border-top: 1px solid #ddd;
+            margin-top: 10px;
+        }
+
+        .icons { color: #555; font-size: 20px; cursor: pointer; }
+
+        .btn-verify {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+        .btn-verify:hover { background-color: #357ae8; }
+
+        /* ERROR MESSAGE */
+        .error-msg {
+            color: #d93025;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <form class="captcha-box" method="POST">
+        <div class="header">
+            {% set clean_prompt = prompt.replace('**', '') %}
+            <h2>Select all images containing:</h2>
+            <span class="strong-text">{{ clean_prompt }}</span>
+            <p>Click verify once there are none left.</p>
+        </div>
+
+        {% if error %}
+            <div class="error-msg">{{ error }}</div>
+        {% endif %}
+
+        <div class="grid">
+            {% for seed in images %}
+                <div class="tile" onclick="toggle(this)">
+                    <img src="https://picsum.photos/seed/{{ seed }}/200" alt="Random">
+                    <div class="check-overlay">✓</div>
+                    <input type="checkbox" name="selection" value="{{ seed }}" style="display:none;">
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="footer">
+            <div class="icons">↺ 🎧 ⓘ</div>
+            <button type="submit" class="btn-verify">VERIFY</button>
+        </div>
+    </form>
+
+    <div style="margin-top: 20px;">
+        <a href="/" style="color: #999; text-decoration: none;">I am a robot (Exit)</a>
+    </div>
+
+    <script>
+        function toggle(element) {
+            // Toggle visual class
+            element.classList.toggle('selected');
+
+            // Toggle the hidden checkbox inside so form knows it was clicked
+            const checkbox = element.querySelector('input');
+            checkbox.checked = !checkbox.checked;
+        }
+    </script>
+</body>
+</html>
