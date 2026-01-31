@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Poker Sim</title>
+    <style>
+        body {
+            background-color: #2b4a3c; /* Felt Green */
+            color: white;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* CARD VISUALS */
+        .card {
+            display: inline-flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 50px;
+            height: 75px;
+            background: white;
+            border-radius: 5px;
+            margin: 0 5px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        .suit-h, .suit-d { color: #d00; } /* Red Suits */
+        .suit-s, .suit-c { color: #000; } /* Black Suits */
+
+        .card-back {
+            background: repeating-linear-gradient(45deg, #b71c1c, #b71c1c 10px, #c62828 10px, #c62828 20px);
+            border: 2px solid white;
+        }
+
+        /* LAYOUT */
+        .table-area {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            height: 500px;
+            border: 15px solid #3e2723;
+            border-radius: 100px;
+            background-color: #35654d;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .community-cards {
+            display: flex;
+            gap: 5px;
+            padding: 10px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+
+        .player-area {
+            position: absolute;
+            bottom: 20px;
+            text-align: center;
+        }
+
+        .bot-area {
+            position: absolute;
+            transform: scale(0.8);
+            text-align: center;
+        }
+        /* Bot Positions around the table */
+        .bot-1 { top: 20px; left: 50%; transform: translateX(-50%) scale(0.8); }
+        .bot-2 { top: 100px; left: 20px; }
+        .bot-3 { top: 100px; right: 20px; }
+        .bot-4 { bottom: 100px; left: 20px; }
+        .bot-5 { bottom: 100px; right: 20px; }
+
+        .winner-glow {
+            box-shadow: 0 0 20px 10px gold;
+            z-index: 10;
+        }
+
+        .actions { margin-top: 20px; }
+
+        button {
+            padding: 15px 40px; font-size: 1.2rem; border: none; border-radius: 5px; cursor: pointer; margin: 10px; font-weight: bold; transition: 0.2s;
+        }
+        .btn-fold { background: #d32f2f; color: white; }
+        .btn-play { background: #388e3c; color: white; }
+        .btn-new { background: #1976d2; color: white; }
+        button:hover { transform: scale(1.05); }
+
+    </style>
+</head>
+<body>
+
+    {% macro render_card(card_str) %}
+        {% set rank = card_str[0] %}
+        {% set suit_char = card_str[1] %}
+        {% set suit_symbol = {'s': '♠', 'h': '♥', 'd': '♦', 'c': '♣'}[suit_char] %}
+        {% set color_class = 'suit-' + suit_char %}
+
+        <div class="card {{ color_class }}">
+            <span style="font-size: 1.2rem;">{{ rank }}</span>
+            <span style="font-size: 1.5rem;">{{ suit_symbol }}</span>
+        </div>
+    {% endmacro %}
+
+    {% macro render_back() %}
+        <div class="card card-back"></div>
+    {% endmacro %}
+
+    <h1>Texas Hold'em Sim</h1>
+
+    {% if result_msg %}
+        <h2 style="color: gold; text-shadow: 1px 1px 0 #000;">{{ result_msg }}</h2>
+    {% else %}
+        <h2>Current Hand</h2>
+    {% endif %}
+
+    <div class="table-area">
+
+        <div class="community-cards">
+            {% if mode == 'deal' %}
+                {{ render_back() }}{{ render_back() }}{{ render_back() }}{{ render_back() }}{{ render_back() }}
+            {% else %}
+                {% for c in community %}
+                    {{ render_card(c) }}
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        {% for i in range(1, 6) %}
+            <div class="bot-area bot-{{ i }}">
+                <div style="margin-bottom:5px;">Bot {{ i }}</div>
+                <div style="display:flex; justify-content:center;">
+                    {% if mode == 'deal' %}
+                        {{ render_back() }}{{ render_back() }}
+                    {% else %}
+                        {% set bot = bot_results[i-1] %}
+                        <div class="{% if winner_idx == i %}winner-glow{% endif %}" style="display:flex;">
+                            {{ render_card(bot.hand[0]) }}
+                            {{ render_card(bot.hand[1]) }}
+                        </div>
+                    {% endif %}
+                </div>
+                {% if mode == 'result' %}
+                    <div style="font-size:0.8rem; color: #aaa;">{{ bot_results[i-1].desc }}</div>
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        <div class="player-area">
+            <div style="margin-bottom:5px;">YOU</div>
+            <div style="display:flex; justify-content:center;" class="{% if winner_idx == 0 %}winner-glow{% endif %}">
+                {{ render_card(user_hand[0]) }}
+                {{ render_card(user_hand[1]) }}
+            </div>
+            {% if mode == 'result' %}
+                <div style="color: gold; font-weight: bold;">{{ user_desc }}</div>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <div class="actions">
+        {% if mode == 'deal' %}
+            <form method="POST" style="display:inline;">
+                <input type="hidden" name="gamestate" value="{{ gamestate }}">
+
+                <button name="action" value="fold" class="btn-fold">FOLD</button>
+                <button name="action" value="play" class="btn-play">PLAY (ALL IN)</button>
+            </form>
+        {% else %}
+            <a href="{{ url_for('page_100.show') }}"><button class="btn-new">Deal New Hand</button></a>
+            <a href="/" style="color: #888; margin-left: 20px;">Exit</a>
+        {% endif %}
+    </div>
+
+</body>
+</html>
