@@ -1,43 +1,43 @@
-# app.py
-from flask import Flask, render_template, request, redirect, abort, jsonify
+from flask import Flask, render_template, redirect, url_for
 import random
-import os
+
+# Import your page modules
+from pages.page_72 import page_72_bp
 
 app = Flask(__name__)
 
-@app.route("/")
-def home():
-    return render_template("home.html")
+# --- REGISTRATION ---
+# Register the blueprints so Flask knows they exist
+app.register_blueprint(page_72_bp)
 
-@app.route("/random")
-def random_page():
-    pages = [
-        f for f in os.listdir(app.template_folder)
-        if f.endswith(".html") and f[:-5].isdigit()
-    ]
-    n = random.choice(pages)
-    return redirect(f"/page/{n[:-5]}")
+# --- CONFIGURATION ---
+# Map a number to the specific FUNCTION name of that page's route.
+# Format: { number: 'blueprint_name.function_name' }
+PAGE_DIRECTORY = {
+    72: 'page_72.show',
+}
 
-@app.route("/page/<int:n>")
-def page(n):
-    template = f"{n}.html"
-    if not os.path.exists(os.path.join(app.template_folder, template)):
-        abort(404)
-    return render_template(template)
 
-@app.route("/action", methods=["POST"])
-def action():
-    action_type = request.form.get("action")
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-    if action_type == "baby_name":
-        return jsonify(result=random.choice(["Luna", "Noah", "Aria"]))
-    elif action_type == "startup":
-        return jsonify(result="AI CRM for dentists")
-    elif action_type == "counter":
-        count = int(request.form.get("count", 0)) + 1
-        return jsonify(result=count)
 
-    return jsonify(result="Unknown action")
+@app.route('/lucky')
+def go_to_random():
+    """Pick a random number from keys, find the endpoint, and redirect."""
+    if not PAGE_DIRECTORY:
+        return "No pages configured", 404
 
-if __name__ == "__main__":
+    # 1. Pick a random key (e.g., 1 or 2)
+    random_key = random.choice(list(PAGE_DIRECTORY.keys()))
+
+    # 2. Get the endpoint name (e.g., 'page_1.show')
+    endpoint = PAGE_DIRECTORY[random_key]
+
+    # 3. Redirect to that endpoint
+    return redirect(url_for(endpoint))
+
+
+if __name__ == '__main__':
     app.run(debug=True)
