@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DANGER</title>
+    <style>
+        body {
+            background-color: #111;
+            color: #ff3333;
+            font-family: 'Courier New', Courier, monospace;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            user-select: none; /* Prevents highlighting text while clicking */
+        }
+
+        /* The Button - Using a DIV for perfect control */
+        .nuke-btn {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle at 30% 30%, #ff5e5e, #990000);
+            border: 10px solid #4a0000;
+            border-radius: 50%;
+            color: white;
+            font-size: 2.5rem;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(255, 0, 0, 0.4), inset 0 5px 10px rgba(255,255,255,0.2);
+            text-transform: uppercase;
+            text-align: center;
+
+            /* Flexbox ensures text is ALWAYS centered */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            line-height: 1.2;
+
+            transition: transform 0.1s, box-shadow 0.1s;
+            z-index: 100;
+        }
+
+        .nuke-btn:active {
+            transform: scale(0.95) translateY(5px);
+            box-shadow: 0 5px 15px rgba(255, 0, 0, 0.4);
+        }
+
+        .nuke-btn span {
+            display: block;
+        }
+
+        /* --- CHAOS ANIMATIONS --- */
+
+        .terminal-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            display: none; /* Hidden by default */
+            z-index: 50;
+            width: 100%;
+        }
+
+        .message {
+            font-size: 4vw; /* Responsive font size */
+            font-weight: bold;
+            text-shadow: 2px 2px 0px #000;
+            margin-bottom: 20px;
+        }
+
+        .shake-mode {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) infinite;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
+            40%, 60% { transform: translate3d(8px, 0, 0); }
+        }
+
+        .flash-mode {
+            animation: red-alert 0.2s infinite;
+        }
+
+        @keyframes red-alert {
+            0% { background-color: #111; }
+            50% { background-color: #600; }
+            100% { background-color: #111; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="btn" class="nuke-btn" onclick="triggerMeltdown()">
+        <span>DO NOT</span>
+        <span>PRESS</span>
+    </div>
+
+    <div id="output" class="terminal-container">
+        <div id="msg-text" class="message">⚠ SYSTEM FAILURE ⚠</div>
+
+        <div id="safe-msg" style="display:none; margin-top: 50px; color: white; font-size: 1.5rem;">
+            (Just kidding.) <br><br>
+            <a href="/" style="color: #4da6ff; text-decoration: none; border: 1px solid #4da6ff; padding: 10px 20px; border-radius: 5px;">Return to Safety</a>
+        </div>
+    </div>
+
+    <script>
+        function triggerMeltdown() {
+            // 1. Get Elements
+            const body = document.body;
+            const btn = document.getElementById('btn');
+            const out = document.getElementById('output');
+            const msg = document.getElementById('msg-text');
+            const safe = document.getElementById('safe-msg');
+
+            // 2. Hide Button
+            btn.style.display = 'none';
+
+            // 3. Start Chaos
+            body.classList.add('shake-mode');
+            body.classList.add('flash-mode');
+            out.style.display = 'block';
+
+            // 4. Sequence of Doom
+            setTimeout(() => { msg.innerText = "DELETING INTERNET..."; }, 2000);
+            setTimeout(() => { msg.innerText = "PURGING ASSETS..."; }, 4000);
+            setTimeout(() => { msg.innerText = "NOTIFYING FBI..."; }, 6000);
+
+            // 5. The End
+            setTimeout(() => {
+                body.classList.remove('shake-mode');
+                body.classList.remove('flash-mode');
+                msg.innerText = "GAME OVER";
+                msg.style.color = "white";
+                msg.style.fontSize = "6vw";
+                safe.style.display = 'block';
+            }, 8000);
+        }
+    </script>
+</body>
+</html>

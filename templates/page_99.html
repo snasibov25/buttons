@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Excuse Gen</title>
+    <style>
+        body { font-family: 'Georgia', serif; background-color: #fffaf0; color: #333; padding: 50px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 90vh; }
+
+        .card {
+            border: 2px solid #333;
+            padding: 40px;
+            max-width: 600px;
+            background: #fff;
+            box-shadow: 10px 10px 0px #333;
+        }
+
+        h2 { text-transform: uppercase; font-size: 0.9rem; letter-spacing: 2px; color: #999; margin-bottom: 30px; }
+
+        .excuse-text { font-size: 2rem; font-weight: bold; line-height: 1.4; margin-bottom: 40px; }
+
+        .btn {
+            background-color: #333; color: white; padding: 15px 30px; text-decoration: none; font-family: sans-serif; font-weight: bold; transition: 0.2s;
+        }
+        .btn:hover { background-color: #555; }
+
+        .home-link { margin-top: 30px; display: block; color: #999; text-decoration: none; font-size: 0.8rem; font-family: sans-serif; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Official Status Report</h2>
+        <div class="excuse-text">
+            "{{ excuse }}"
+        </div>
+        <a href="{{ url_for('page_99.show') }}" class="btn">Generate New Excuse</a>
+    </div>
+
+    <a href="/" class="home-link">← Back to Safety</a>
+</body>
+</html>

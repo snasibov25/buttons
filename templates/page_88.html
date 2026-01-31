@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>The Perfect 5</title>
+    <style>
+        body { background: #222; color: #fff; font-family: 'Courier New', monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+
+        .timer { font-size: 8rem; font-weight: bold; margin: 20px; width: 400px; text-align: center; }
+
+        .btn-action {
+            padding: 20px 60px; font-size: 2rem; border-radius: 50px; border: none; cursor: pointer;
+            background-color: #00e676; color: #000; font-weight: bold;
+            box-shadow: 0 0 20px rgba(0, 230, 118, 0.4);
+        }
+        .btn-action:active { transform: scale(0.98); }
+
+        .result { font-size: 1.5rem; margin-top: 20px; height: 30px; color: #ffeb3b; }
+    </style>
+</head>
+<body>
+    <p>Stop the timer at exactly <strong>5.00</strong> seconds.</p>
+
+    <div class="timer" id="display">0.00</div>
+    <button class="btn-action" id="actionBtn" onclick="toggleTimer()">START</button>
+
+    <div class="result" id="msg"></div>
+    <a href="/" style="color: #666; margin-top: 40px; text-decoration: none;">Give Up</a>
+
+    <script>
+        let startTime;
+        let running = false;
+        let interval;
+        const display = document.getElementById('display');
+        const btn = document.getElementById('actionBtn');
+        const msg = document.getElementById('msg');
+
+        function toggleTimer() {
+            if (!running) {
+                // START
+                running = true;
+                startTime = Date.now();
+                btn.innerText = "STOP";
+                btn.style.backgroundColor = "#ff1744";
+                msg.innerText = "";
+
+                interval = setInterval(() => {
+                    let elapsed = (Date.now() - startTime) / 1000;
+                    display.innerText = elapsed.toFixed(2);
+                }, 10);
+            } else {
+                // STOP
+                running = false;
+                clearInterval(interval);
+                btn.innerText = "RETRY";
+                btn.style.backgroundColor = "#00e676";
+
+                let finalTime = display.innerText;
+
+                if (finalTime === "5.00") {
+                    msg.innerText = "🏆 GODLIKE! PERFECT SCORE! 🏆";
+                    display.style.color = "#00e676";
+                } else {
+                    let diff = Math.abs(5.00 - parseFloat(finalTime)).toFixed(2);
+                    msg.innerText = "Fail. You were off by " + diff + "s";
+                    display.style.color = "#fff";
+                }
+            }
+        }
+    </script>
+</body>
+</html>
