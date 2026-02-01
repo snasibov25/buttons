@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>True Random Explorer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* BACK BUTTON */
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            text-decoration: none;
+            background: white;
+            color: #333;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            z-index: 999;
+        }
+        .back-btn:hover { transform: scale(1.05); }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            overflow: hidden;
+            width: 90%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        .header {
+            padding: 20px;
+            background: #2563eb;
+            color: white;
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; }
+        .coords { font-family: monospace; opacity: 0.9; margin-top: 5px; }
+
+        .map-wrapper {
+            width: 100%;
+            height: 500px;
+        }
+
+        iframe { width: 100%; height: 100%; border: none; }
+
+        .btn-again {
+            display: inline-block;
+            margin: 20px;
+            padding: 12px 30px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .btn-again:hover { background: #1d4ed8; }
+    </style>
+</head>
+<body>
+
+    <a href="/" class="back-btn">← Exit</a>
+
+    <div class="card">
+        <div class="header">
+            <h1>Your next visit should be to...</h1>
+            <div class="coords">{{ lat }}, {{ lon }}</div>
+        </div>
+
+        <div class="map-wrapper">
+            <iframe
+                src="https://maps.google.com/maps?q={{ lat }},{{ lon }}&t=k&z=10&ie=UTF8&iwloc=&output=embed"
+                frameborder="0" scrolling="no" marginheight="0" marginwidth="0">
+            </iframe>
+        </div>
+
+        <a href="{{ url_for('page_43.show') }}" class="btn-again">Find New Location</a>
+    </div>
+
+</body>
+</html>
